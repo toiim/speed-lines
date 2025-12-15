@@ -9,6 +9,7 @@ const minWidth = ref(1);
 const maxWidth = ref(5);
 const outerLengthLeniency = ref(50); // number of pixels that can extend beyond the radius
 const innerLengthLeniency = ref(50); // number of pixels that can be shorter than the radius
+const seed = ref(12345); // seed for deterministic random variance
 
 const canvasWidth = 800;
 const canvasHeight = 600;
@@ -36,7 +37,7 @@ onMounted(() => {
   drawSpeedLines();
 });
 
-watch([vanishingPointX, vanishingPointY, radius, speedLineCount, minWidth, maxWidth, outerLengthLeniency, innerLengthLeniency, threshold, isAntiAliasing, outputCanvasWidth, outputCanvasHeight, outputCanvasX, outputCanvasY], async () => {
+watch([vanishingPointX, vanishingPointY, radius, speedLineCount, minWidth, maxWidth, outerLengthLeniency, innerLengthLeniency, threshold, isAntiAliasing, outputCanvasWidth, outputCanvasHeight, outputCanvasX, outputCanvasY, seed], async () => {
   await nextTick();
   drawSpeedLines();
 });
@@ -317,6 +318,16 @@ function handleMouseUp(event: MouseEvent | TouchEvent) {
   }
 }
 
+// Seeded random number generator using Linear Congruential Generator
+function seededRandom(seed: number): () => number {
+  let state = seed;
+  return function () {
+    // LCG parameters (same as used in many programming languages)
+    state = (state * 1664525 + 1013904223) % Math.pow(2, 32);
+    return state / Math.pow(2, 32);
+  };
+}
+
 function drawSpeedLines() {
   const canvas = speedLineCanvas.value;
   if (!canvas) return;
@@ -351,6 +362,10 @@ function drawSpeedLines() {
     // Calculate perimeter for golden ratio distribution
     const perimeter = 2 * outputWidth + 2 * outputHeight;
     const goldenRatio = 1.618033988749895; // Golden ratio (phi)
+
+    // Create seeded random generator for this draw call
+    // Combine seed with line count to ensure same seed + same line count = same pattern
+    const rng = seededRandom(seed.value + speedLineCount.value * 1000);
 
     for (let i = 0; i < speedLineCount.value; i++) {
       // Use golden ratio to distribute points evenly along the perimeter
@@ -405,8 +420,9 @@ function drawSpeedLines() {
         const minTravelDistance = Math.max(0, goalTravelDistance - outerLengthLeniency.value);
         const maxTravelDistance = Math.min(distance, goalTravelDistance + innerLengthLeniency.value);
 
-        // Randomly choose a travel distance within the allowed range
-        const randomValue = Math.random();
+        // Use seeded random to choose a travel distance within the allowed range
+        // This ensures the same seed + line index produces the same variance
+        const randomValue = rng();
         const travelDistance = minTravelDistance + randomValue * (maxTravelDistance - minTravelDistance);
 
         // Calculate end point along the line
@@ -486,38 +502,42 @@ function toggleAntiAliasing() {
           <input type="range" min="0" max="100" v-model.number="vanishingPointX" /><span>{{ vanishingPointX }}</span>
         </div>
         <div>
-        <label for="vanishingPointY">Vanishing Point Y</label>
-        <input type="range" min="0" max="100" v-model.number="vanishingPointY" /><span>{{ vanishingPointY }}</span>
+          <label for="vanishingPointY">Vanishing Point Y</label>
+          <input type="range" min="0" max="100" v-model.number="vanishingPointY" /><span>{{ vanishingPointY }}</span>
         </div>
         <div>
-        <label for="radius">Radius</label>
-        <input type="range" min="0" max="1000" v-model.number="radius" /><span>{{ radius }}</span>
+          <label for="radius">Radius</label>
+          <input type="range" min="0" max="1000" v-model.number="radius" /><span>{{ radius }}</span>
         </div>
         <div>
-        <label for="speedLineCount">Speed Line Count</label>
-        <input type="range" min="10" max="1000" v-model.number="speedLineCount" /><span>{{ speedLineCount }}</span>
+          <label for="speedLineCount">Speed Line Count</label>
+          <input type="range" min="10" max="1000" v-model.number="speedLineCount" /><span>{{ speedLineCount }}</span>
         </div>
         <div>
-        <label for="minWidth">Min Width</label>
-        <input type="range" min="0" max="10" v-model.number="minWidth" /><span>{{ minWidth }}</span>
+          <label for="minWidth">Min Width</label>
+          <input type="range" min="0" max="10" v-model.number="minWidth" /><span>{{ minWidth }}</span>
         </div>
         <div>
-        <label for="maxWidth">Max Width</label>
-        <input type="range" min="1" max="50" v-model.number="maxWidth" /><span>{{ maxWidth }}</span>
+          <label for="maxWidth">Max Width</label>
+          <input type="range" min="1" max="50" v-model.number="maxWidth" /><span>{{ maxWidth }}</span>
         </div>
         <div>
-        <label for="outerLengthLeniency">Outer Length Leniency</label>
-        <input type="range" min="1" max="500" v-model.number="outerLengthLeniency" /><span>{{ outerLengthLeniency
-          }}</span>
+          <label for="outerLengthLeniency">Outer Length Leniency</label>
+          <input type="range" min="1" max="500" v-model.number="outerLengthLeniency" /><span>{{ outerLengthLeniency
+            }}</span>
         </div>
         <div>
-        <label for="innerLengthLeniency">Inner Length Leniency</label>
-        <input type="range" min="1" max="500" v-model.number="innerLengthLeniency" /><span>{{ innerLengthLeniency
-          }}</span>
+          <label for="innerLengthLeniency">Inner Length Leniency</label>
+          <input type="range" min="1" max="500" v-model.number="innerLengthLeniency" /><span>{{ innerLengthLeniency
+            }}</span>
         </div>
         <div>
-        <label for="threshold">Threshold</label>
-        <input type="range" min="1" max="255" v-model.number="threshold" /><span>{{ threshold }}</span>
+          <label for="seed">Seed</label>
+          <input type="number" v-model.number="seed" /><span>{{ seed }}</span>
+        </div>
+        <div>
+          <label for="threshold">Threshold</label>
+          <input type="range" min="1" max="255" v-model.number="threshold" /><span>{{ threshold }}</span>
         </div>
       </div>
       <div>
@@ -557,15 +577,16 @@ function toggleAntiAliasing() {
         <circle :cx="outputCanvasX + outputCanvasWidth / 2" :cy="outputCanvasY + outputCanvasHeight" r="6" fill="red"
           stroke="#333" stroke-width="2" @mousedown="startDragOutputHeight" @touchstart="startDragOutputHeight"
           :style="{ cursor: isDraggingOutputHeight ? 'ns-resize' : 'ns-resize' }" />
+
+        <!-- Radius handle circle (on the edge of main radius circle) -->
+        <circle :cx="vanishingPointX * canvasWidth / 100 + radius" :cy="vanishingPointY * canvasHeight / 100" r="6"
+          fill="#999" stroke="#333" stroke-width="2" @mousedown="startDragRadius" @touchstart="startDragRadius"
+          :style="{ cursor: isDraggingRadius ? 'grabbing' : 'grab' }" />
         <!-- Outer leniency handle circle (on the edge of outer variance circle) -->
         <circle :cx="vanishingPointX * canvasWidth / 100 + radius + outerLengthLeniency"
           :cy="vanishingPointY * canvasHeight / 100" r="6" fill="#666" stroke="#333" stroke-width="2"
           @mousedown="startDragOuterLeniency" @touchstart="startDragOuterLeniency"
           :style="{ cursor: isDraggingOuterLeniency ? 'grabbing' : 'grab' }" />
-        <!-- Radius handle circle (on the edge of main radius circle) -->
-        <circle :cx="vanishingPointX * canvasWidth / 100 + radius" :cy="vanishingPointY * canvasHeight / 100" r="6"
-          fill="#999" stroke="#333" stroke-width="2" @mousedown="startDragRadius" @touchstart="startDragRadius"
-          :style="{ cursor: isDraggingRadius ? 'grabbing' : 'grab' }" />
         <!-- Inner leniency handle circle (on the edge of inner variance circle) -->
         <circle :cx="vanishingPointX * canvasWidth / 100 + Math.max(0, radius - innerLengthLeniency)"
           :cy="vanishingPointY * canvasHeight / 100" r="6" fill="#666" stroke="#333" stroke-width="2"
