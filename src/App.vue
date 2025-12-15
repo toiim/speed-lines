@@ -7,7 +7,8 @@ const radius = ref(150);
 const speedLineCount = ref(100);
 const minWidth = ref(1);
 const maxWidth = ref(5);
-const lengthLeniency = ref(50); // number of pixels that can be above or below the ideal length
+const outerLengthLeniency = ref(50); // number of pixels that can extend beyond the radius
+const innerLengthLeniency = ref(50); // number of pixels that can be shorter than the radius
 
 const canvasWidth = 800;
 const canvasHeight = 600;
@@ -15,7 +16,8 @@ const canvasHeight = 600;
 const speedLineCanvas = ref<HTMLCanvasElement | null>(null);
 const svgElement = ref<SVGSVGElement | null>(null);
 const isDragging = ref(false);
-const isDraggingLeniency = ref(false);
+const isDraggingOuterLeniency = ref(false);
+const isDraggingInnerLeniency = ref(false);
 const isDraggingRadius = ref(false);
 const dragOffset = ref<{ x: number; y: number } | null>(null);
 const threshold = ref(50);
@@ -25,7 +27,7 @@ onMounted(() => {
   drawSpeedLines();
 });
 
-watch([vanishingPointX, vanishingPointY, radius, speedLineCount, minWidth, maxWidth, lengthLeniency, threshold, isAntiAliasing], () => {
+watch([vanishingPointX, vanishingPointY, radius, speedLineCount, minWidth, maxWidth, outerLengthLeniency, innerLengthLeniency, threshold, isAntiAliasing], () => {
   drawSpeedLines();
 });
 
@@ -59,7 +61,7 @@ function getSVGPoint(event: MouseEvent | TouchEvent): { x: number; y: number } |
 }
 
 function startDrag(event: MouseEvent | TouchEvent) {
-  if (isDraggingLeniency.value || isDraggingRadius.value) return;
+  if (isDraggingOuterLeniency.value || isDraggingInnerLeniency.value || isDraggingRadius.value) return;
   event.preventDefault();
   
   const point = getSVGPoint(event);
@@ -77,7 +79,7 @@ function startDrag(event: MouseEvent | TouchEvent) {
 }
 
 function drag(event: MouseEvent | TouchEvent) {
-  if (!isDragging.value || isDraggingLeniency.value || isDraggingRadius.value || !dragOffset.value) return;
+  if (!isDragging.value || isDraggingOuterLeniency.value || isDraggingInnerLeniency.value || isDraggingRadius.value || !dragOffset.value) return;
   event.preventDefault();
 
   const point = getSVGPoint(event);
@@ -97,16 +99,22 @@ function drag(event: MouseEvent | TouchEvent) {
 }
 
 function stopDrag(event: MouseEvent | TouchEvent) {
-  if (isDraggingLeniency.value || isDraggingRadius.value) return;
+  if (isDraggingOuterLeniency.value || isDraggingInnerLeniency.value || isDraggingRadius.value) return;
   event.preventDefault();
   isDragging.value = false;
   dragOffset.value = null;
 }
 
-function startDragLeniency(event: MouseEvent | TouchEvent) {
+function startDragOuterLeniency(event: MouseEvent | TouchEvent) {
   event.preventDefault();
   event.stopPropagation();
-  isDraggingLeniency.value = true;
+  isDraggingOuterLeniency.value = true;
+}
+
+function startDragInnerLeniency(event: MouseEvent | TouchEvent) {
+  event.preventDefault();
+  event.stopPropagation();
+  isDraggingInnerLeniency.value = true;
 }
 
 function startDragRadius(event: MouseEvent | TouchEvent) {
@@ -115,8 +123,8 @@ function startDragRadius(event: MouseEvent | TouchEvent) {
   isDraggingRadius.value = true;
 }
 
-function dragLeniency(event: MouseEvent | TouchEvent) {
-  if (!isDraggingLeniency.value) return;
+function dragOuterLeniency(event: MouseEvent | TouchEvent) {
+  if (!isDraggingOuterLeniency.value) return;
   event.preventDefault();
   event.stopPropagation();
 
@@ -131,12 +139,37 @@ function dragLeniency(event: MouseEvent | TouchEvent) {
   const dy = point.y - vpY;
   const distance = Math.sqrt(dx * dx + dy * dy);
 
-  // Update lengthLeniency based on distance from vanishing point
-  // lengthLeniency = distance - radius
+  // Update outerLengthLeniency based on distance from vanishing point
+  // outerLengthLeniency = distance - radius
   const newLeniency = distance - radius.value;
 
   // Clamp to valid range (1-500 based on input range)
-  lengthLeniency.value = Math.max(1, Math.min(500, newLeniency));
+  outerLengthLeniency.value = Math.max(1, Math.min(500, newLeniency));
+}
+
+function dragInnerLeniency(event: MouseEvent | TouchEvent) {
+  if (!isDraggingInnerLeniency.value) return;
+  event.preventDefault();
+  event.stopPropagation();
+
+  const point = getSVGPoint(event);
+  if (!point) return;
+
+  const vpX = vanishingPointX.value * canvasWidth / 100;
+  const vpY = vanishingPointY.value * canvasHeight / 100;
+
+  // Calculate distance from vanishing point to mouse position
+  const dx = point.x - vpX;
+  const dy = point.y - vpY;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  // Update innerLengthLeniency based on distance from vanishing point
+  // innerLengthLeniency = radius - distance (when distance < radius)
+  const newLeniency = radius.value - distance;
+
+  // Clamp to valid range (1-500 based on input range)
+  // Also ensure it doesn't exceed the radius
+  innerLengthLeniency.value = Math.max(1, Math.min(500, Math.max(0, newLeniency)));
 }
 
 function dragRadius(event: MouseEvent | TouchEvent) {
@@ -160,10 +193,16 @@ function dragRadius(event: MouseEvent | TouchEvent) {
   radius.value = Math.max(0, Math.min(1000, distance));
 }
 
-function stopDragLeniency(event: MouseEvent | TouchEvent) {
+function stopDragOuterLeniency(event: MouseEvent | TouchEvent) {
   event.preventDefault();
   event.stopPropagation();
-  isDraggingLeniency.value = false;
+  isDraggingOuterLeniency.value = false;
+}
+
+function stopDragInnerLeniency(event: MouseEvent | TouchEvent) {
+  event.preventDefault();
+  event.stopPropagation();
+  isDraggingInnerLeniency.value = false;
 }
 
 function stopDragRadius(event: MouseEvent | TouchEvent) {
@@ -173,8 +212,10 @@ function stopDragRadius(event: MouseEvent | TouchEvent) {
 }
 
 function handleMouseMove(event: MouseEvent | TouchEvent) {
-  if (isDraggingLeniency.value) {
-    dragLeniency(event);
+  if (isDraggingOuterLeniency.value) {
+    dragOuterLeniency(event);
+  } else if (isDraggingInnerLeniency.value) {
+    dragInnerLeniency(event);
   } else if (isDraggingRadius.value) {
     dragRadius(event);
   } else if (isDragging.value) {
@@ -183,8 +224,10 @@ function handleMouseMove(event: MouseEvent | TouchEvent) {
 }
 
 function handleMouseUp(event: MouseEvent | TouchEvent) {
-  if (isDraggingLeniency.value) {
-    stopDragLeniency(event);
+  if (isDraggingOuterLeniency.value) {
+    stopDragOuterLeniency(event);
+  } else if (isDraggingInnerLeniency.value) {
+    stopDragInnerLeniency(event);
   } else if (isDraggingRadius.value) {
     stopDragRadius(event);
   } else if (isDragging.value) {
@@ -254,9 +297,17 @@ function drawSpeedLines() {
         // Calculate the goal travel distance (stopping at radius distance from vanishing point)
         const goalTravelDistance = Math.max(0, distance - r);
 
-        // Add random leniency to the travel distance (can be longer or shorter)
-        const leniencyOffset = (Math.random() * 2 - 1) * lengthLeniency.value; // Random between -lengthLeniency and +lengthLeniency
-        const travelDistance = Math.max(0, Math.min(distance, goalTravelDistance + leniencyOffset)); // Clamp between 0 and total distance
+        // Apply separate inner and outer leniency boundaries
+        // Lines should never extend beyond (radius + outerLengthLeniency) - furthest from VP
+        // Lines should never be shorter than (radius - innerLengthLeniency) - closest to VP
+        // Smaller travelDistance = ends further from VP (outer boundary)
+        // Larger travelDistance = ends closer to VP (inner boundary)
+        const minTravelDistance = Math.max(0, goalTravelDistance - outerLengthLeniency.value);
+        const maxTravelDistance = Math.min(distance, goalTravelDistance + innerLengthLeniency.value);
+        
+        // Randomly choose a travel distance within the allowed range
+        const randomValue = Math.random();
+        const travelDistance = minTravelDistance + randomValue * (maxTravelDistance - minTravelDistance);
 
         // Calculate end point along the line
         const endX = startX + dirX * travelDistance;
@@ -342,8 +393,10 @@ function toggleAntiAliasing() {
         <input type="range" min="0" max="10" v-model.number="minWidth" /><span>{{ minWidth }}</span>
         <label for="maxWidth">Max Width</label>
         <input type="range" min="1" max="50" v-model.number="maxWidth" /><span>{{ maxWidth }}</span>
-        <label for="lengthLeniency">Length Leniency</label>
-        <input type="range" min="1" max="500" v-model.number="lengthLeniency" /><span>{{ lengthLeniency }}</span>
+        <label for="outerLengthLeniency">Outer Length Leniency</label>
+        <input type="range" min="1" max="500" v-model.number="outerLengthLeniency" /><span>{{ outerLengthLeniency }}</span>
+        <label for="innerLengthLeniency">Inner Length Leniency</label>
+        <input type="range" min="1" max="500" v-model.number="innerLengthLeniency" /><span>{{ innerLengthLeniency }}</span>
         <label for="threshold">Threshold</label>
         <input type="range" min="1" max="255" v-model.number="threshold" /><span>{{ threshold }}</span>
       </div>
@@ -358,15 +411,15 @@ function toggleAntiAliasing() {
       <svg ref="svgElement" :width="canvasWidth" :height="canvasHeight" :viewBox="`0 0 ${canvasWidth} ${canvasHeight}`"
         @mousemove="handleMouseMove" @mouseup="handleMouseUp" @mouseleave="handleMouseUp" @touchmove="handleMouseMove"
         @touchend="handleMouseUp">
-        <!-- Outer variance circle (radius + lengthLeniency) -->
+        <!-- Outer variance circle (radius + outerLengthLeniency) -->
         <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100"
-          :r="radius + lengthLeniency" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="4 4" />
+          :r="radius + outerLengthLeniency" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="4 4" />
 
-        <!-- Leniency handle circle (on the edge of outer variance circle) -->
-        <circle :cx="vanishingPointX * canvasWidth / 100 + radius + lengthLeniency"
+        <!-- Outer leniency handle circle (on the edge of outer variance circle) -->
+        <circle :cx="vanishingPointX * canvasWidth / 100 + radius + outerLengthLeniency"
           :cy="vanishingPointY * canvasHeight / 100" r="6" fill="#666" stroke="#333" stroke-width="2"
-          @mousedown="startDragLeniency" @touchstart="startDragLeniency"
-          :style="{ cursor: isDraggingLeniency ? 'grabbing' : 'grab' }" />
+          @mousedown="startDragOuterLeniency" @touchstart="startDragOuterLeniency"
+          :style="{ cursor: isDraggingOuterLeniency ? 'grabbing' : 'grab' }" />
         <!-- Main radius circle -->
         <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100" :r="radius"
           @mousedown="startDrag" @touchstart="startDrag" :style="{ cursor: isDragging ? 'grabbing' : 'grab' }" />
@@ -374,10 +427,15 @@ function toggleAntiAliasing() {
         <circle :cx="vanishingPointX * canvasWidth / 100 + radius" :cy="vanishingPointY * canvasHeight / 100" r="6"
           fill="#999" stroke="#333" stroke-width="2" @mousedown="startDragRadius" @touchstart="startDragRadius"
           :style="{ cursor: isDraggingRadius ? 'grabbing' : 'grab' }" />
-        <!-- Inner variance circle (radius - lengthLeniency) -->
+        <!-- Inner variance circle (radius - innerLengthLeniency) -->
         <circle class="pointer-ignore" :cx="vanishingPointX * canvasWidth / 100"
-          :cy="vanishingPointY * canvasHeight / 100" :r="Math.max(0, radius - lengthLeniency)" fill="none" stroke="#888"
+          :cy="vanishingPointY * canvasHeight / 100" :r="Math.max(0, radius - innerLengthLeniency)" fill="none" stroke="#888"
           stroke-width="1" stroke-dasharray="4 4" />
+        <!-- Inner leniency handle circle (on the edge of inner variance circle) -->
+        <circle :cx="vanishingPointX * canvasWidth / 100 + Math.max(0, radius - innerLengthLeniency)"
+          :cy="vanishingPointY * canvasHeight / 100" r="6" fill="#666" stroke="#333" stroke-width="2"
+          @mousedown="startDragInnerLeniency" @touchstart="startDragInnerLeniency"
+          :style="{ cursor: isDraggingInnerLeniency ? 'grabbing' : 'grab' }" />
       </svg>
       <canvas ref="speedLineCanvas" id="speed-lines" :width="canvasWidth" :height="canvasHeight"></canvas>
     </div>
