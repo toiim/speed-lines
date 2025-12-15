@@ -3,13 +3,15 @@ import { ref, watch, onMounted } from 'vue';
 
 const vanishingPointX = ref(50);
 const vanishingPointY = ref(50);
-const radius = ref(5);
+const radius = ref(150);
 const speedLineCount = ref(100);
+const minWidth = ref(1);
+const maxWidth = ref(5);
+const lengthLeniency = ref(50); // number of pixels that can be above or below the ideal length
 
 const canvasWidth = 800;
 const canvasHeight = 600;
 
-const canvas = ref<HTMLCanvasElement | null>(null);
 const speedLineCanvas = ref<HTMLCanvasElement | null>(null);
 
 onMounted(() => {
@@ -20,19 +22,18 @@ function drawSpeedLines() {
   const ctx = speedLineCanvas.value?.getContext('2d');
   if (ctx) {
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-    
+
     const vpX = vanishingPointX.value * canvasWidth / 100;
     const vpY = vanishingPointY.value * canvasHeight / 100;
     const r = radius.value;
-    
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 1;
-    
+
+    ctx.fillStyle = '#000';
+
     for (let i = 0; i < speedLineCount.value; i++) {
       // pick a random point on the edge of the canvas
       let startX: number, startY: number;
       const edge = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
-      
+
       if (edge === 0) {
         // top edge
         startX = Math.random() * canvasWidth;
@@ -50,25 +51,53 @@ function drawSpeedLines() {
         startX = 0;
         startY = Math.random() * canvasHeight;
       }
-      
+
       // draw towards the vanishing point, stopping at the radius
       const dx = vpX - startX;
       const dy = vpY - startY;
       const distance = Math.sqrt(dx * dx + dy * dy);
-      
+
       if (distance > 0) {
         // Normalize direction vector
         const dirX = dx / distance;
         const dirY = dy / distance;
+
+        // Calculate perpendicular vector for width offset
+        const perpX = -dirY;
+        const perpY = dirX;
+
+        // Calculate the goal travel distance (stopping at radius distance from vanishing point)
+        const goalTravelDistance = Math.max(0, distance - r);
         
-        // Calculate end point at the edge of the radius circle
-        const endX = vpX - dirX * r;
-        const endY = vpY - dirY * r;
-        
+        // Add random leniency to the travel distance (can be longer or shorter)
+        const leniencyOffset = (Math.random() * 2 - 1) * lengthLeniency.value; // Random between -lengthLeniency and +lengthLeniency
+        const travelDistance = Math.max(0, Math.min(distance, goalTravelDistance + leniencyOffset)); // Clamp between 0 and total distance
+
+        // Calculate end point along the line
+        const endX = startX + dirX * travelDistance;
+        const endY = startY + dirY * travelDistance;
+
+        // Create a quadrilateral shape: wider at start (maxWidth), narrower at end (minWidth)
+        const startWidthHalf = maxWidth.value / 2;
+        const endWidthHalf = minWidth.value / 2;
+
+        // Four corners of the trapezoid
+        const p1X = startX + perpX * startWidthHalf;
+        const p1Y = startY + perpY * startWidthHalf;
+        const p2X = startX - perpX * startWidthHalf;
+        const p2Y = startY - perpY * startWidthHalf;
+        const p3X = endX - perpX * endWidthHalf;
+        const p3Y = endY - perpY * endWidthHalf;
+        const p4X = endX + perpX * endWidthHalf;
+        const p4Y = endY + perpY * endWidthHalf;
+
         ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(endX, endY);
-        ctx.stroke();
+        ctx.moveTo(p1X, p1Y);
+        ctx.lineTo(p2X, p2Y);
+        ctx.lineTo(p3X, p3Y);
+        ctx.lineTo(p4X, p4Y);
+        ctx.closePath();
+        ctx.fill();
       }
     }
   }
@@ -78,24 +107,41 @@ function drawSpeedLines() {
 </script>
 
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
-  <div class="vanishing-point">
-    <input type="range" min="0" max="100" v-model="vanishingPointX" /><span>{{ vanishingPointX }}</span>
-    <input type="range" min="0" max="100" v-model="vanishingPointY" /><span>{{ vanishingPointY }}</span>
-    <input type="range" min="0" max="1000" v-model="radius" /><span>{{ radius }}</span>
-    <input type="range" min="10" max="1000" v-model="speedLineCount" /><span>{{ speedLineCount }}</span>
+  <div id="container">
+    <div id="controls">
+      <div class="vanishing-point">
+        <label for="vanishingPointX">Vanishing Point X</label>
+        <input type="range" min="0" max="100" v-model="vanishingPointX" /><span>{{ vanishingPointX }}</span>
+        <label for="vanishingPointY">Vanishing Point Y</label>
+        <input type="range" min="0" max="100" v-model="vanishingPointY" /><span>{{ vanishingPointY }}</span>
+        <label for="radius">Radius</label>
+        <input type="range" min="0" max="1000" v-model="radius" /><span>{{ radius }}</span>
+        <label for="speedLineCount">Speed Line Count</label>
+        <input type="range" min="10" max="1000" v-model="speedLineCount" /><span>{{ speedLineCount }}</span>
+        <label for="minWidth">Min Width</label>
+        <input type="range" min="1" max="10" v-model="minWidth" /><span>{{ minWidth }}</span>
+        <label for="maxWidth">Max Width</label>
+        <input type="range" min="1" max="10" v-model="maxWidth" /><span>{{ maxWidth }}</span>
+        <label for="lengthLeniency">Length Leniency</label>
+        <input type="range" min="1" max="100" v-model="lengthLeniency" /><span>{{ lengthLeniency }}</span>
+      </div>
+      <div>
+        <button @click="drawSpeedLines">Draw Speed Lines</button>
+      </div>
+    </div>
+    <div id="output">
+      <svg :width="canvasWidth" :height="canvasHeight" :viewBox="`0 0 ${canvasWidth} ${canvasHeight}`">
+        <div class="lengthLeniency">
+          <label for="lengthLeniency">Length Leniency</label>
+          <input type="range" min="1" max="100" v-model="lengthLeniency" /><span>{{ lengthLeniency }}</span>
+        </div>
+        <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100" :r="radius" />
+      </svg>
+      <canvas ref="speedLineCanvas" id="speed-lines" :width="canvasWidth" :height="canvasHeight"></canvas>
+    </div>
   </div>
-  <div>
-    <button @click="drawSpeedLines">Draw Speed Lines</button>
-  </div>
-  <svg :width="canvasWidth" :height="canvasHeight" :viewBox="`0 0 ${canvasWidth} ${canvasHeight}`">
-    <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100" :r="radius" />
-  </svg>
-  <canvas ref="speedLineCanvas" id="speed-lines" :width="canvasWidth" :height="canvasHeight"></canvas>
+
+
 </template>
 
 <style scoped>
@@ -107,5 +153,18 @@ svg {
 
 #speed-lines {
   border: 1px solid red;
+}
+
+.vanishing-point {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 200px;
+}
+#container   {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  width: 100%;
 }
 </style>
