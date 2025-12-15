@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, nextTick } from 'vue';
 
 const vanishingPointX = ref(50);
 const vanishingPointY = ref(50);
@@ -13,12 +13,20 @@ const innerLengthLeniency = ref(50); // number of pixels that can be shorter tha
 const canvasWidth = 800;
 const canvasHeight = 600;
 
+// Output canvas box dimensions (initially matches canvas size)
+const outputCanvasWidth = ref(800);
+const outputCanvasHeight = ref(600);
+const outputCanvasX = ref(0);
+const outputCanvasY = ref(0);
+
 const speedLineCanvas = ref<HTMLCanvasElement | null>(null);
 const svgElement = ref<SVGSVGElement | null>(null);
 const isDragging = ref(false);
 const isDraggingOuterLeniency = ref(false);
 const isDraggingInnerLeniency = ref(false);
 const isDraggingRadius = ref(false);
+const isDraggingOutputWidth = ref(false);
+const isDraggingOutputHeight = ref(false);
 const dragOffset = ref<{ x: number; y: number } | null>(null);
 const threshold = ref(50);
 const isAntiAliasing = ref(true);
@@ -27,7 +35,8 @@ onMounted(() => {
   drawSpeedLines();
 });
 
-watch([vanishingPointX, vanishingPointY, radius, speedLineCount, minWidth, maxWidth, outerLengthLeniency, innerLengthLeniency, threshold, isAntiAliasing], () => {
+watch([vanishingPointX, vanishingPointY, radius, speedLineCount, minWidth, maxWidth, outerLengthLeniency, innerLengthLeniency, threshold, isAntiAliasing, outputCanvasWidth, outputCanvasHeight], async () => {
+  await nextTick();
   drawSpeedLines();
 });
 
@@ -61,7 +70,7 @@ function getSVGPoint(event: MouseEvent | TouchEvent): { x: number; y: number } |
 }
 
 function startDrag(event: MouseEvent | TouchEvent) {
-  if (isDraggingOuterLeniency.value || isDraggingInnerLeniency.value || isDraggingRadius.value) return;
+  if (isDraggingOuterLeniency.value || isDraggingInnerLeniency.value || isDraggingRadius.value || isDraggingOutputWidth.value || isDraggingOutputHeight.value) return;
   event.preventDefault();
   
   const point = getSVGPoint(event);
@@ -79,7 +88,7 @@ function startDrag(event: MouseEvent | TouchEvent) {
 }
 
 function drag(event: MouseEvent | TouchEvent) {
-  if (!isDragging.value || isDraggingOuterLeniency.value || isDraggingInnerLeniency.value || isDraggingRadius.value || !dragOffset.value) return;
+  if (!isDragging.value || isDraggingOuterLeniency.value || isDraggingInnerLeniency.value || isDraggingRadius.value || isDraggingOutputWidth.value || isDraggingOutputHeight.value || !dragOffset.value) return;
   event.preventDefault();
 
   const point = getSVGPoint(event);
@@ -99,7 +108,7 @@ function drag(event: MouseEvent | TouchEvent) {
 }
 
 function stopDrag(event: MouseEvent | TouchEvent) {
-  if (isDraggingOuterLeniency.value || isDraggingInnerLeniency.value || isDraggingRadius.value) return;
+  if (isDraggingOuterLeniency.value || isDraggingInnerLeniency.value || isDraggingRadius.value || isDraggingOutputWidth.value || isDraggingOutputHeight.value) return;
   event.preventDefault();
   isDragging.value = false;
   dragOffset.value = null;
@@ -211,6 +220,56 @@ function stopDragRadius(event: MouseEvent | TouchEvent) {
   isDraggingRadius.value = false;
 }
 
+function startDragOutputWidth(event: MouseEvent | TouchEvent) {
+  event.preventDefault();
+  event.stopPropagation();
+  isDraggingOutputWidth.value = true;
+}
+
+function startDragOutputHeight(event: MouseEvent | TouchEvent) {
+  event.preventDefault();
+  event.stopPropagation();
+  isDraggingOutputHeight.value = true;
+}
+
+function dragOutputWidth(event: MouseEvent | TouchEvent) {
+  if (!isDraggingOutputWidth.value) return;
+  event.preventDefault();
+  event.stopPropagation();
+
+  const point = getSVGPoint(event);
+  if (!point) return;
+
+  // Update width based on mouse X position relative to box left edge
+  const newWidth = Math.max(50, Math.min(canvasWidth - outputCanvasX.value, point.x - outputCanvasX.value));
+  outputCanvasWidth.value = newWidth;
+}
+
+function dragOutputHeight(event: MouseEvent | TouchEvent) {
+  if (!isDraggingOutputHeight.value) return;
+  event.preventDefault();
+  event.stopPropagation();
+
+  const point = getSVGPoint(event);
+  if (!point) return;
+
+  // Update height based on mouse Y position relative to box top edge
+  const newHeight = Math.max(50, Math.min(canvasHeight - outputCanvasY.value, point.y - outputCanvasY.value));
+  outputCanvasHeight.value = newHeight;
+}
+
+function stopDragOutputWidth(event: MouseEvent | TouchEvent) {
+  event.preventDefault();
+  event.stopPropagation();
+  isDraggingOutputWidth.value = false;
+}
+
+function stopDragOutputHeight(event: MouseEvent | TouchEvent) {
+  event.preventDefault();
+  event.stopPropagation();
+  isDraggingOutputHeight.value = false;
+}
+
 function handleMouseMove(event: MouseEvent | TouchEvent) {
   if (isDraggingOuterLeniency.value) {
     dragOuterLeniency(event);
@@ -218,6 +277,10 @@ function handleMouseMove(event: MouseEvent | TouchEvent) {
     dragInnerLeniency(event);
   } else if (isDraggingRadius.value) {
     dragRadius(event);
+  } else if (isDraggingOutputWidth.value) {
+    dragOutputWidth(event);
+  } else if (isDraggingOutputHeight.value) {
+    dragOutputHeight(event);
   } else if (isDragging.value) {
     drag(event);
   }
@@ -230,17 +293,30 @@ function handleMouseUp(event: MouseEvent | TouchEvent) {
     stopDragInnerLeniency(event);
   } else if (isDraggingRadius.value) {
     stopDragRadius(event);
+  } else if (isDraggingOutputWidth.value) {
+    stopDragOutputWidth(event);
+  } else if (isDraggingOutputHeight.value) {
+    stopDragOutputHeight(event);
   } else if (isDragging.value) {
     stopDrag(event);
   }
 }
 
 function drawSpeedLines() {
-  const ctx = speedLineCanvas.value?.getContext('2d');
+  const canvas = speedLineCanvas.value;
+  if (!canvas) return;
+  
+  // Ensure canvas dimensions match the reactive values
+  if (canvas.width !== outputCanvasWidth.value || canvas.height !== outputCanvasHeight.value) {
+    canvas.width = outputCanvasWidth.value;
+    canvas.height = outputCanvasHeight.value;
+  }
+  
+  const ctx = canvas.getContext('2d');
   if (ctx) {
 
     ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    ctx.fillRect(0, 0, outputCanvasWidth.value, outputCanvasHeight.value);
 
     const vpX = vanishingPointX.value * canvasWidth / 100;
     const vpY = vanishingPointY.value * canvasHeight / 100;
@@ -248,8 +324,12 @@ function drawSpeedLines() {
 
     ctx.fillStyle = '#000';
 
+    // Use output canvas dimensions for drawing
+    const outputWidth = outputCanvasWidth.value;
+    const outputHeight = outputCanvasHeight.value;
+
     // Calculate perimeter for golden ratio distribution
-    const perimeter = 2 * canvasWidth + 2 * canvasHeight;
+    const perimeter = 2 * outputWidth + 2 * outputHeight;
     const goldenRatio = 1.618033988749895; // Golden ratio (phi)
 
     for (let i = 0; i < speedLineCount.value; i++) {
@@ -262,22 +342,22 @@ function drawSpeedLines() {
       // Convert perimeter position to x,y coordinates on the edge
       let startX: number, startY: number;
 
-      if (perimeterPosition < canvasWidth) {
+      if (perimeterPosition < outputWidth) {
         // Top edge (left to right)
         startX = perimeterPosition;
         startY = 0;
-      } else if (perimeterPosition < canvasWidth + canvasHeight) {
+      } else if (perimeterPosition < outputWidth + outputHeight) {
         // Right edge (top to bottom)
-        startX = canvasWidth;
-        startY = perimeterPosition - canvasWidth;
-      } else if (perimeterPosition < 2 * canvasWidth + canvasHeight) {
+        startX = outputWidth;
+        startY = perimeterPosition - outputWidth;
+      } else if (perimeterPosition < 2 * outputWidth + outputHeight) {
         // Bottom edge (right to left)
-        startX = canvasWidth - (perimeterPosition - canvasWidth - canvasHeight);
-        startY = canvasHeight;
+        startX = outputWidth - (perimeterPosition - outputWidth - outputHeight);
+        startY = outputHeight;
       } else {
         // Left edge (bottom to top)
         startX = 0;
-        startY = canvasHeight - (perimeterPosition - 2 * canvasWidth - canvasHeight);
+        startY = outputHeight - (perimeterPosition - 2 * outputWidth - outputHeight);
       }
 
       // draw towards the vanishing point, stopping at the radius
@@ -339,7 +419,7 @@ function drawSpeedLines() {
     if (!isAntiAliasing.value) {
       // Apply threshold filter to remove anti-aliasing
       // Convert pixels to black or white based on threshold value
-      const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+      const imageData = ctx.getImageData(0, 0, outputCanvasWidth.value, outputCanvasHeight.value);
       const data = imageData.data;
       const thresholdValue = threshold.value;
       
@@ -411,8 +491,44 @@ function toggleAntiAliasing() {
       <svg ref="svgElement" :width="canvasWidth" :height="canvasHeight" :viewBox="`0 0 ${canvasWidth} ${canvasHeight}`"
         @mousemove="handleMouseMove" @mouseup="handleMouseUp" @mouseleave="handleMouseUp" @touchmove="handleMouseMove"
         @touchend="handleMouseUp">
+        <!-- Output canvas box (red rectangle) -->
+        <rect 
+          :x="outputCanvasX" 
+          :y="outputCanvasY" 
+          :width="outputCanvasWidth" 
+          :height="outputCanvasHeight" 
+          fill="none" 
+          stroke="red" 
+          stroke-width="2" 
+          stroke-dasharray="4 4"
+          class="pointer-ignore"
+        />
+        <!-- Width resize handle (right edge, center) -->
+        <circle 
+          :cx="outputCanvasX + outputCanvasWidth" 
+          :cy="outputCanvasY + outputCanvasHeight / 2" 
+          r="6" 
+          fill="red" 
+          stroke="#333" 
+          stroke-width="2"
+          @mousedown="startDragOutputWidth" 
+          @touchstart="startDragOutputWidth"
+          :style="{ cursor: isDraggingOutputWidth ? 'ew-resize' : 'ew-resize' }" 
+        />
+        <!-- Height resize handle (bottom edge, center) -->
+        <circle 
+          :cx="outputCanvasX + outputCanvasWidth / 2" 
+          :cy="outputCanvasY + outputCanvasHeight" 
+          r="6" 
+          fill="red" 
+          stroke="#333" 
+          stroke-width="2"
+          @mousedown="startDragOutputHeight" 
+          @touchstart="startDragOutputHeight"
+          :style="{ cursor: isDraggingOutputHeight ? 'ns-resize' : 'ns-resize' }" 
+        />
         <!-- Outer variance circle (radius + outerLengthLeniency) -->
-        <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100"
+        <circle class="pointer-ignore" :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100"
           :r="radius + outerLengthLeniency" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="4 4" />
 
         <!-- Outer leniency handle circle (on the edge of outer variance circle) -->
@@ -437,7 +553,7 @@ function toggleAntiAliasing() {
           @mousedown="startDragInnerLeniency" @touchstart="startDragInnerLeniency"
           :style="{ cursor: isDraggingInnerLeniency ? 'grabbing' : 'grab' }" />
       </svg>
-      <canvas ref="speedLineCanvas" id="speed-lines" :width="canvasWidth" :height="canvasHeight"></canvas>
+      <canvas ref="speedLineCanvas" id="speed-lines" :width="outputCanvasWidth" :height="outputCanvasHeight"></canvas>
     </div>
   </div>
 
@@ -459,6 +575,9 @@ circle {
 
 #speed-lines {
   border: 1px solid red;
+  display: block;
+  width: auto;
+  height: auto;
 }
 
 .vanishing-point {
