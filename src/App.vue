@@ -26,12 +26,12 @@ watch([vanishingPointX, vanishingPointY, radius, speedLineCount, minWidth, maxWi
 
 function getSVGPoint(event: MouseEvent | TouchEvent): { x: number; y: number } | null {
   if (!svgElement.value) return null;
-  
+
   const svg = svgElement.value;
   const rect = svg.getBoundingClientRect();
-  
+
   let clientX: number, clientY: number;
-  
+
   if (event instanceof MouseEvent) {
     clientX = event.clientX;
     clientY = event.clientY;
@@ -41,15 +41,15 @@ function getSVGPoint(event: MouseEvent | TouchEvent): { x: number; y: number } |
     clientX = touch.clientX;
     clientY = touch.clientY;
   }
-  
+
   // Convert screen coordinates to SVG coordinates
   // Scale based on the ratio of SVG viewBox to actual rendered size
   const scaleX = canvasWidth / rect.width;
   const scaleY = canvasHeight / rect.height;
-  
+
   const x = (clientX - rect.left) * scaleX;
   const y = (clientY - rect.top) * scaleY;
-  
+
   return { x, y };
 }
 
@@ -61,14 +61,14 @@ function startDrag(event: MouseEvent | TouchEvent) {
 function drag(event: MouseEvent | TouchEvent) {
   if (!isDragging.value) return;
   event.preventDefault();
-  
+
   const point = getSVGPoint(event);
   if (!point) return;
-  
+
   // Convert SVG coordinates to percentage values
   const xPercent = (point.x / canvasWidth) * 100;
   const yPercent = (point.y / canvasHeight) * 100;
-  
+
   // Clamp values to valid range (0-100)
   vanishingPointX.value = Math.max(0, Math.min(100, xPercent));
   vanishingPointY.value = Math.max(0, Math.min(100, yPercent));
@@ -100,10 +100,10 @@ function drawSpeedLines() {
       // Multiply by golden ratio and take modulo 1 to get normalized position, then scale to perimeter
       const normalizedPosition = (i * goldenRatio) % 1.0;
       const perimeterPosition = normalizedPosition * perimeter;
-      
+
       // Convert perimeter position to x,y coordinates on the edge
       let startX: number, startY: number;
-      
+
       if (perimeterPosition < canvasWidth) {
         // Top edge (left to right)
         startX = perimeterPosition;
@@ -138,7 +138,7 @@ function drawSpeedLines() {
 
         // Calculate the goal travel distance (stopping at radius distance from vanishing point)
         const goalTravelDistance = Math.max(0, distance - r);
-        
+
         // Add random leniency to the travel distance (can be longer or shorter)
         const leniencyOffset = (Math.random() * 2 - 1) * lengthLeniency.value; // Random between -lengthLeniency and +lengthLeniency
         const travelDistance = Math.max(0, Math.min(distance, goalTravelDistance + leniencyOffset)); // Clamp between 0 and total distance
@@ -181,48 +181,38 @@ function drawSpeedLines() {
     <div id="controls">
       <div class="vanishing-point">
         <label for="vanishingPointX">Vanishing Point X</label>
-        <input type="range" min="0" max="100" v-model="vanishingPointX" /><span>{{ vanishingPointX }}</span>
+        <input type="range" min="0" max="100" v-model.number="vanishingPointX" /><span>{{ vanishingPointX }}</span>
         <label for="vanishingPointY">Vanishing Point Y</label>
-        <input type="range" min="0" max="100" v-model="vanishingPointY" /><span>{{ vanishingPointY }}</span>
+        <input type="range" min="0" max="100" v-model.number="vanishingPointY" /><span>{{ vanishingPointY }}</span>
         <label for="radius">Radius</label>
-        <input type="range" min="0" max="1000" v-model="radius" /><span>{{ radius }}</span>
+        <input type="range" min="0" max="1000" v-model.number="radius" /><span>{{ radius }}</span>
         <label for="speedLineCount">Speed Line Count</label>
-        <input type="range" min="10" max="1000" v-model="speedLineCount" /><span>{{ speedLineCount }}</span>
+        <input type="range" min="10" max="1000" v-model.number="speedLineCount" /><span>{{ speedLineCount }}</span>
         <label for="minWidth">Min Width</label>
-        <input type="range" min="1" max="10" v-model="minWidth" /><span>{{ minWidth }}</span>
+        <input type="range" min="1" max="10" v-model.number="minWidth" /><span>{{ minWidth }}</span>
         <label for="maxWidth">Max Width</label>
-        <input type="range" min="1" max="10" v-model="maxWidth" /><span>{{ maxWidth }}</span>
+        <input type="range" min="1" max="10" v-model.number="maxWidth" /><span>{{ maxWidth }}</span>
         <label for="lengthLeniency">Length Leniency</label>
-        <input type="range" min="1" max="100" v-model="lengthLeniency" /><span>{{ lengthLeniency }}</span>
+        <input type="range" min="1" max="100" v-model.number="lengthLeniency" /><span>{{ lengthLeniency }}</span>
       </div>
       <div>
         <button @click="drawSpeedLines">Draw Speed Lines</button>
       </div>
     </div>
     <div id="output">
-      <svg 
-        ref="svgElement"
-        :width="canvasWidth" 
-        :height="canvasHeight" 
-        :viewBox="`0 0 ${canvasWidth} ${canvasHeight}`"
-        @mousemove="drag"
-        @mouseup="stopDrag"
-        @mouseleave="stopDrag"
-        @touchmove="drag"
-        @touchend="stopDrag"
-      >
-        <div class="lengthLeniency">
-          <label for="lengthLeniency">Length Leniency</label>
-          <input type="range" min="1" max="100" v-model="lengthLeniency" /><span>{{ lengthLeniency }}</span>
-        </div>
-        <circle 
-          :cx="vanishingPointX * canvasWidth / 100" 
-          :cy="vanishingPointY * canvasHeight / 100" 
-          :r="radius"
-          @mousedown="startDrag"
-          @touchstart="startDrag"
-          :style="{ cursor: isDragging ? 'grabbing' : 'grab' }"
-        />
+      <svg ref="svgElement" :width="canvasWidth" :height="canvasHeight" :viewBox="`0 0 ${canvasWidth} ${canvasHeight}`"
+        @mousemove="drag" @mouseup="stopDrag" @mouseleave="stopDrag" @touchmove="drag" @touchend="stopDrag">
+
+        <!-- Main radius circle -->
+        <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100" :r="radius"
+          @mousedown="startDrag" @touchstart="startDrag" :style="{ cursor: isDragging ? 'grabbing' : 'grab' }" />
+        <!-- Inner variance circle (radius - lengthLeniency) -->
+        <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100"
+          :r="Math.max(0, radius - lengthLeniency)" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="4 4" />
+
+        <!-- Outer variance circle (radius + lengthLeniency) -->
+        <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100"
+          :r="radius + lengthLeniency" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="4 4" />
       </svg>
       <canvas ref="speedLineCanvas" id="speed-lines" :width="canvasWidth" :height="canvasHeight"></canvas>
     </div>
@@ -254,7 +244,8 @@ circle {
   gap: 10px;
   width: 200px;
 }
-#container   {
+
+#container {
   display: flex;
   flex-direction: row;
   gap: 10px;
