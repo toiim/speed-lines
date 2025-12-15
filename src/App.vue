@@ -73,10 +73,10 @@ function getSVGPoint(event: MouseEvent | TouchEvent): { x: number; y: number } |
 function startDrag(event: MouseEvent | TouchEvent) {
   if (isDraggingOuterLeniency.value || isDraggingInnerLeniency.value || isDraggingRadius.value || isDraggingOutputWidth.value || isDraggingOutputHeight.value) return;
   event.preventDefault();
-  
+
   const point = getSVGPoint(event);
   if (!point) return;
-  
+
   // Calculate offset from click position to vanishing point center
   const vpX = vanishingPointX.value * canvasWidth / 100;
   const vpY = vanishingPointY.value * canvasHeight / 100;
@@ -84,7 +84,7 @@ function startDrag(event: MouseEvent | TouchEvent) {
     x: point.x - vpX,
     y: point.y - vpY
   };
-  
+
   isDragging.value = true;
 }
 
@@ -243,11 +243,11 @@ function dragOutputWidth(event: MouseEvent | TouchEvent) {
 
   // Calculate center of the box
   const centerX = outputCanvasX.value + outputCanvasWidth.value / 2;
-  
+
   // Calculate distance from center to mouse (doubled to get full width)
   const distanceFromCenter = Math.abs(point.x - centerX);
   const newWidth = Math.max(50, Math.min(canvasWidth, distanceFromCenter * 2));
-  
+
   // Update width and x position to keep box centered
   outputCanvasWidth.value = newWidth;
   outputCanvasX.value = (canvasWidth - newWidth) / 2;
@@ -263,11 +263,11 @@ function dragOutputHeight(event: MouseEvent | TouchEvent) {
 
   // Calculate center of the box
   const centerY = outputCanvasY.value + outputCanvasHeight.value / 2;
-  
+
   // Calculate distance from center to mouse (doubled to get full height)
   const distanceFromCenter = Math.abs(point.y - centerY);
   const newHeight = Math.max(50, Math.min(canvasHeight, distanceFromCenter * 2));
-  
+
   // Update height and y position to keep box centered
   outputCanvasHeight.value = newHeight;
   outputCanvasY.value = (canvasHeight - newHeight) / 2;
@@ -320,13 +320,13 @@ function handleMouseUp(event: MouseEvent | TouchEvent) {
 function drawSpeedLines() {
   const canvas = speedLineCanvas.value;
   if (!canvas) return;
-  
+
   // Ensure canvas dimensions match the reactive values
   if (canvas.width !== outputCanvasWidth.value || canvas.height !== outputCanvasHeight.value) {
     canvas.width = outputCanvasWidth.value;
     canvas.height = outputCanvasHeight.value;
   }
-  
+
   const ctx = canvas.getContext('2d');
   if (ctx) {
 
@@ -404,7 +404,7 @@ function drawSpeedLines() {
         // Larger travelDistance = ends closer to VP (inner boundary)
         const minTravelDistance = Math.max(0, goalTravelDistance - outerLengthLeniency.value);
         const maxTravelDistance = Math.min(distance, goalTravelDistance + innerLengthLeniency.value);
-        
+
         // Randomly choose a travel distance within the allowed range
         const randomValue = Math.random();
         const travelDistance = minTravelDistance + randomValue * (maxTravelDistance - minTravelDistance);
@@ -442,7 +442,7 @@ function drawSpeedLines() {
       const imageData = ctx.getImageData(0, 0, outputCanvasWidth.value, outputCanvasHeight.value);
       const data = imageData.data;
       const thresholdValue = threshold.value;
-      
+
       // Process pixels in a single pass for optimal performance
       // Each pixel has 4 values: R, G, B, A
       for (let i = 0; i < data.length; i += 4) {
@@ -452,17 +452,17 @@ function drawSpeedLines() {
         const g = data[i + 1] ?? 0;
         const b = data[i + 2] ?? 0;
         const gray = Math.round(r * 0.299 + g * 0.587 + b * 0.114);
-        
+
         // Apply threshold: >= threshold becomes white (255), < threshold becomes black (0)
         const value = gray >= thresholdValue ? 255 : 0;
-        
+
         // Set RGB to the thresholded value, keep alpha channel unchanged
         data[i] = value;     // R
         data[i + 1] = value; // G
         data[i + 2] = value; // B
         // data[i + 3] remains unchanged (alpha)
       }
-      
+
       // Put the processed image data back to the canvas
       ctx.putImageData(imageData, 0, 0);
     }
@@ -481,24 +481,44 @@ function toggleAntiAliasing() {
   <div id="container">
     <div id="controls">
       <div class="vanishing-point">
-        <label for="vanishingPointX">Vanishing Point X</label>
-        <input type="range" min="0" max="100" v-model.number="vanishingPointX" /><span>{{ vanishingPointX }}</span>
+        <div>
+          <label for="vanishingPointX">Vanishing Point X</label>
+          <input type="range" min="0" max="100" v-model.number="vanishingPointX" /><span>{{ vanishingPointX }}</span>
+        </div>
+        <div>
         <label for="vanishingPointY">Vanishing Point Y</label>
         <input type="range" min="0" max="100" v-model.number="vanishingPointY" /><span>{{ vanishingPointY }}</span>
+        </div>
+        <div>
         <label for="radius">Radius</label>
         <input type="range" min="0" max="1000" v-model.number="radius" /><span>{{ radius }}</span>
+        </div>
+        <div>
         <label for="speedLineCount">Speed Line Count</label>
         <input type="range" min="10" max="1000" v-model.number="speedLineCount" /><span>{{ speedLineCount }}</span>
+        </div>
+        <div>
         <label for="minWidth">Min Width</label>
         <input type="range" min="0" max="10" v-model.number="minWidth" /><span>{{ minWidth }}</span>
+        </div>
+        <div>
         <label for="maxWidth">Max Width</label>
         <input type="range" min="1" max="50" v-model.number="maxWidth" /><span>{{ maxWidth }}</span>
+        </div>
+        <div>
         <label for="outerLengthLeniency">Outer Length Leniency</label>
-        <input type="range" min="1" max="500" v-model.number="outerLengthLeniency" /><span>{{ outerLengthLeniency }}</span>
+        <input type="range" min="1" max="500" v-model.number="outerLengthLeniency" /><span>{{ outerLengthLeniency
+          }}</span>
+        </div>
+        <div>
         <label for="innerLengthLeniency">Inner Length Leniency</label>
-        <input type="range" min="1" max="500" v-model.number="innerLengthLeniency" /><span>{{ innerLengthLeniency }}</span>
+        <input type="range" min="1" max="500" v-model.number="innerLengthLeniency" /><span>{{ innerLengthLeniency
+          }}</span>
+        </div>
+        <div>
         <label for="threshold">Threshold</label>
         <input type="range" min="1" max="255" v-model.number="threshold" /><span>{{ threshold }}</span>
+        </div>
       </div>
       <div>
         <button @click="drawSpeedLines">Draw Speed Lines</button>
@@ -511,56 +531,32 @@ function toggleAntiAliasing() {
       <svg ref="svgElement" :width="canvasWidth" :height="canvasHeight" :viewBox="`0 0 ${canvasWidth} ${canvasHeight}`"
         @mousemove="handleMouseMove" @mouseup="handleMouseUp" @mouseleave="handleMouseUp" @touchmove="handleMouseMove"
         @touchend="handleMouseUp">
-                <!-- Main radius circle (interactive, no pointer-ignore) -->
-                <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100" :r="radius"
+        <!-- Main radius circle (interactive, no pointer-ignore) -->
+        <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100" :r="radius"
           @mousedown="startDrag" @touchstart="startDrag" :style="{ cursor: isDragging ? 'grabbing' : 'grab' }" />
         <!-- Background elements (with pointer-ignore) -->
         <!-- Output canvas box (red rectangle) -->
-        <rect 
-          :x="outputCanvasX" 
-          :y="outputCanvasY" 
-          :width="outputCanvasWidth" 
-          :height="outputCanvasHeight" 
-          fill="none" 
-          stroke="red" 
-          stroke-width="2" 
-          stroke-dasharray="4 4"
-          class="pointer-ignore"
-        />
+        <rect :x="outputCanvasX" :y="outputCanvasY" :width="outputCanvasWidth" :height="outputCanvasHeight" fill="none"
+          stroke="red" stroke-width="2" stroke-dasharray="4 4" class="pointer-ignore" />
         <!-- Outer variance circle (radius + outerLengthLeniency) -->
-        <circle class="pointer-ignore" :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100"
-          :r="radius + outerLengthLeniency" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="4 4" />
+        <circle class="pointer-ignore" :cx="vanishingPointX * canvasWidth / 100"
+          :cy="vanishingPointY * canvasHeight / 100" :r="radius + outerLengthLeniency" fill="none" stroke="#888"
+          stroke-width="1" stroke-dasharray="4 4" />
         <!-- Inner variance circle (radius - innerLengthLeniency) -->
         <circle class="pointer-ignore" :cx="vanishingPointX * canvasWidth / 100"
-          :cy="vanishingPointY * canvasHeight / 100" :r="Math.max(0, radius - innerLengthLeniency)" fill="none" stroke="#888"
-          stroke-width="1" stroke-dasharray="4 4" />
+          :cy="vanishingPointY * canvasHeight / 100" :r="Math.max(0, radius - innerLengthLeniency)" fill="none"
+          stroke="#888" stroke-width="1" stroke-dasharray="4 4" />
 
-        
+
         <!-- Handles (rendered last, on top) -->
         <!-- Width resize handle (right edge, center) -->
-        <circle 
-          :cx="outputCanvasX + outputCanvasWidth" 
-          :cy="outputCanvasY + outputCanvasHeight / 2" 
-          r="6" 
-          fill="red" 
-          stroke="#333" 
-          stroke-width="2"
-          @mousedown="startDragOutputWidth" 
-          @touchstart="startDragOutputWidth"
-          :style="{ cursor: isDraggingOutputWidth ? 'ew-resize' : 'ew-resize' }" 
-        />
+        <circle :cx="outputCanvasX + outputCanvasWidth" :cy="outputCanvasY + outputCanvasHeight / 2" r="6" fill="red"
+          stroke="#333" stroke-width="2" @mousedown="startDragOutputWidth" @touchstart="startDragOutputWidth"
+          :style="{ cursor: isDraggingOutputWidth ? 'ew-resize' : 'ew-resize' }" />
         <!-- Height resize handle (bottom edge, center) -->
-        <circle 
-          :cx="outputCanvasX + outputCanvasWidth / 2" 
-          :cy="outputCanvasY + outputCanvasHeight" 
-          r="6" 
-          fill="red" 
-          stroke="#333" 
-          stroke-width="2"
-          @mousedown="startDragOutputHeight" 
-          @touchstart="startDragOutputHeight"
-          :style="{ cursor: isDraggingOutputHeight ? 'ns-resize' : 'ns-resize' }" 
-        />
+        <circle :cx="outputCanvasX + outputCanvasWidth / 2" :cy="outputCanvasY + outputCanvasHeight" r="6" fill="red"
+          stroke="#333" stroke-width="2" @mousedown="startDragOutputHeight" @touchstart="startDragOutputHeight"
+          :style="{ cursor: isDraggingOutputHeight ? 'ns-resize' : 'ns-resize' }" />
         <!-- Outer leniency handle circle (on the edge of outer variance circle) -->
         <circle :cx="vanishingPointX * canvasWidth / 100 + radius + outerLengthLeniency"
           :cy="vanishingPointY * canvasHeight / 100" r="6" fill="#666" stroke="#333" stroke-width="2"
