@@ -572,11 +572,11 @@ function toggleAntiAliasing() {
         </div>
         <div>
           <label for="minWidth">Min Width</label>
-          <input type="range" min="0" max="10" v-model.number="minWidth" /><span>{{ minWidth }}</span>
+          <input type="range" step="0.01" min="0" max="10" v-model.number="minWidth" /><span>{{ minWidth }}</span>
         </div>
         <div>
           <label for="maxWidth">Max Width</label>
-          <input type="range" min="1" max="50" v-model.number="maxWidth" /><span>{{ maxWidth }}</span>
+          <input type="range" step="0.01" min="1" max="50" v-model.number="maxWidth" /><span>{{ maxWidth }}</span>
         </div>
         <div>
           <label for="outerLengthLeniency">Outer Length Leniency</label>
@@ -615,6 +615,8 @@ function toggleAntiAliasing() {
         <!-- Main radius circle (interactive, no pointer-ignore) -->
         <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100" :r="radius"
           @mousedown="startDrag" @touchstart="startDrag" :style="{ cursor: isDragging ? 'grabbing' : 'grab' }" />
+          <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100" :r="2" fill="red" class="pointer-ignore" />
+          
         <!-- Background elements (with pointer-ignore) -->
         <!-- Outer edge box (pink rectangle) -->
         <rect :x="outputCanvasX - outerEdge" :y="outputCanvasY - outerEdge" 
