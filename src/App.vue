@@ -725,7 +725,7 @@ function toggleAntiAliasing() {
             Threshold
           </label>
           <div class="slider-container">
-            <input :disabled="!isAntiAliasing" type="range" id="threshold" min="1" max="255" v-model.number="threshold" />
+            <input :disabled="isAntiAliasing" type="range" id="threshold" min="1" max="255" v-model.number="threshold" />
             <span class="value">{{ threshold }}</span>
           </div>
         </div>
