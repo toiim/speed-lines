@@ -771,7 +771,28 @@ function toggleAntiAliasing() {
           </svg>
           Output Canvas
         </h3>
-        
+        <div class="control-item">
+          <label for="threshold">
+            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="20" height="20" rx="2"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+            Threshold
+          </label>
+          <div class="slider-container">
+            <input :disabled="isAntiAliasing" type="range" id="threshold" min="1" max="255" v-model.number="threshold" />
+            <span class="value">{{ threshold }}</span>
+          </div>
+        </div>
+        <div class="control-item checkbox-item">
+          <label for="isAntiAliasing" class="checkbox-label">
+            <input type="checkbox" id="isAntiAliasing" v-model="isAntiAliasing" />
+            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
+            </svg>
+            Anti-aliasing
+          </label>
+        </div>
       </div>
 
       <!-- Advanced Settings Section -->
@@ -796,28 +817,7 @@ function toggleAntiAliasing() {
             <span class="value">{{ seed }}</span>
           </div>
         </div>
-        <div class="control-item">
-          <label for="threshold">
-            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="2" width="20" height="20" rx="2"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-            Threshold
-          </label>
-          <div class="slider-container">
-            <input :disabled="isAntiAliasing" type="range" id="threshold" min="1" max="255" v-model.number="threshold" />
-            <span class="value">{{ threshold }}</span>
-          </div>
-        </div>
-        <div class="control-item checkbox-item">
-          <label for="isAntiAliasing" class="checkbox-label">
-            <input type="checkbox" id="isAntiAliasing" v-model="isAntiAliasing" />
-            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
-            </svg>
-            Anti-aliasing
-          </label>
-        </div>
+        
       </div>
     </div>
     <div id="output">
