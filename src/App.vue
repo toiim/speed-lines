@@ -10,6 +10,7 @@ const maxWidth = ref(5);
 const outerLengthLeniency = ref(50); // number of pixels that can extend beyond the radius
 const innerLengthLeniency = ref(50); // number of pixels that can be shorter than the radius
 const outerEdge = ref(50); // margin/padding outside the output canvas for line starting points
+const outerEdgeShape = ref<'circle' | 'rectangle'>('circle'); // shape of the outer edge
 const seed = ref(12345); // seed for deterministic random variance
 
 const canvasWidth = 800;
@@ -39,7 +40,7 @@ onMounted(() => {
   drawSpeedLines();
 });
 
-watch([vanishingPointX, vanishingPointY, radius, speedLineCount, minWidth, maxWidth, outerLengthLeniency, innerLengthLeniency, threshold, isAntiAliasing, outputCanvasWidth, outputCanvasHeight, outputCanvasX, outputCanvasY, seed, outerEdge], async () => {
+watch([vanishingPointX, vanishingPointY, radius, speedLineCount, minWidth, maxWidth, outerLengthLeniency, innerLengthLeniency, threshold, isAntiAliasing, outputCanvasWidth, outputCanvasHeight, outputCanvasX, outputCanvasY, seed, outerEdge, outerEdgeShape], async () => {
   await nextTick();
   drawSpeedLines();
 });
@@ -302,23 +303,44 @@ function dragOuterEdge(event: MouseEvent | TouchEvent) {
   const point = getSVGPoint(event);
   if (!point) return;
 
-  // Calculate circle center (center of output canvas)
-  const circleCenterX = outputCanvasX.value + outputCanvasWidth.value / 2;
-  const circleCenterY = outputCanvasY.value + outputCanvasHeight.value / 2;
+  const centerX = outputCanvasX.value + outputCanvasWidth.value / 2;
+  const centerY = outputCanvasY.value + outputCanvasHeight.value / 2;
 
-  // Calculate distance from circle center to mouse position
-  const dx = point.x - circleCenterX;
-  const dy = point.y - circleCenterY;
-  const distanceFromCenter = Math.sqrt(dx * dx + dy * dy);
+  if (outerEdgeShape.value === 'circle') {
+    // Calculate distance from circle center to mouse position
+    const dx = point.x - centerX;
+    const dy = point.y - centerY;
+    const distanceFromCenter = Math.sqrt(dx * dx + dy * dy);
 
-  // Calculate base radius (half diagonal of output canvas)
-  const baseRadius = Math.sqrt((outputCanvasWidth.value / 2) ** 2 + (outputCanvasHeight.value / 2) ** 2);
+    // Calculate base radius (half diagonal of output canvas)
+    const baseRadius = Math.sqrt((outputCanvasWidth.value / 2) ** 2 + (outputCanvasHeight.value / 2) ** 2);
 
-  // Outer edge is the distance beyond the base radius
-  const newOuterEdge = distanceFromCenter - baseRadius;
+    // Outer edge is the distance beyond the base radius
+    const newOuterEdge = distanceFromCenter - baseRadius;
 
-  // Clamp to reasonable range (0-200)
-  outerEdge.value = Math.max(0, Math.min(200, newOuterEdge));
+    // Clamp to reasonable range (0-200)
+    outerEdge.value = Math.max(0, Math.min(200, newOuterEdge));
+  } else {
+    // Rectangle: calculate distance from rectangle edge
+    const halfWidth = outputCanvasWidth.value / 2;
+    const halfHeight = outputCanvasHeight.value / 2;
+    
+    // Calculate the distance from the rectangle edge (expanded by outerEdge)
+    // Find the closest edge and calculate margin
+    const dx = Math.abs(point.x - centerX);
+    const dy = Math.abs(point.y - centerY);
+    
+    // For rectangle, outerEdge is the margin added to each side
+    // Calculate how far beyond the rectangle the point is
+    const marginX = dx - halfWidth;
+    const marginY = dy - halfHeight;
+    
+    // Use the maximum margin (furthest from rectangle)
+    const newOuterEdge = Math.max(0, Math.max(marginX, marginY));
+
+    // Clamp to reasonable range (0-200)
+    outerEdge.value = Math.max(0, Math.min(200, newOuterEdge));
+  }
 }
 
 function stopDragOuterEdge(event: MouseEvent | TouchEvent) {
@@ -400,35 +422,76 @@ function drawSpeedLines() {
 
     ctx.fillStyle = '#000';
 
-    // Calculate circle center (center of output canvas)
-    const circleCenterX = outputCanvasX.value + outputCanvasWidth.value / 2;
-    const circleCenterY = outputCanvasY.value + outputCanvasHeight.value / 2;
-
-    // Calculate circle radius (half diagonal of output canvas + outer edge margin)
-    const baseRadius = Math.sqrt((outputCanvasWidth.value / 2) ** 2 + (outputCanvasHeight.value / 2) ** 2);
-    const outerCircleRadius = baseRadius + outerEdge.value;
-
-    // Calculate circumference for golden ratio distribution
-    const circumference = 2 * Math.PI * outerCircleRadius;
-    const goldenRatio = 1.618033988749895; // Golden ratio (phi)
+    // Calculate center (center of output canvas)
+    const centerX = outputCanvasX.value + outputCanvasWidth.value / 2;
+    const centerY = outputCanvasY.value + outputCanvasHeight.value / 2;
 
     // Create seeded random generator for this draw call
     // Combine seed with line count to ensure same seed + same line count = same pattern
     const rng = seededRandom(seed.value + speedLineCount.value * 1000);
 
     for (let i = 0; i < speedLineCount.value; i++) {
-      // Use golden ratio to distribute points evenly along the circle's circumference
-      // This creates a sequence that naturally fills gaps (Fibonacci-style)
-      // Multiply by golden ratio and take modulo 1 to get normalized position, then scale to circumference
-      const normalizedPosition = (i * goldenRatio) % 1.0;
-      const arcLength = normalizedPosition * circumference;
+      let startXCanvas: number;
+      let startYCanvas: number;
 
-      // Convert arc length to angle (in radians)
-      const angle = arcLength / outerCircleRadius;
+      if (outerEdgeShape.value === 'circle') {
+        // Calculate circle radius (half diagonal of output canvas + outer edge margin)
+        const baseRadius = Math.sqrt((outputCanvasWidth.value / 2) ** 2 + (outputCanvasHeight.value / 2) ** 2);
+        const outerCircleRadius = baseRadius + outerEdge.value;
 
-      // Calculate point on circle edge
-      const startXCanvas = circleCenterX + Math.cos(angle) * outerCircleRadius;
-      const startYCanvas = circleCenterY + Math.sin(angle) * outerCircleRadius;
+        // Calculate circumference for golden ratio distribution
+        const circumference = 2 * Math.PI * outerCircleRadius;
+        const goldenRatio = 1.618033988749895; // Golden ratio (phi)
+
+        // Use golden ratio to distribute points evenly along the circle's circumference
+        // This creates a sequence that naturally fills gaps (Fibonacci-style)
+        // Multiply by golden ratio and take modulo 1 to get normalized position, then scale to circumference
+        const normalizedPosition = (i * goldenRatio) % 1.0;
+        const arcLength = normalizedPosition * circumference;
+
+        // Convert arc length to angle (in radians)
+        const angle = arcLength / outerCircleRadius;
+
+        // Calculate point on circle edge
+        startXCanvas = centerX + Math.cos(angle) * outerCircleRadius;
+        startYCanvas = centerY + Math.sin(angle) * outerCircleRadius;
+      } else {
+        // Rectangle: distribute points along the rectangle perimeter
+        const halfWidth = outputCanvasWidth.value / 2 + outerEdge.value;
+        const halfHeight = outputCanvasHeight.value / 2 + outerEdge.value;
+        
+        // Calculate perimeter
+        const perimeter = 2 * (halfWidth * 2 + halfHeight * 2);
+        const goldenRatio = 1.618033988749895;
+        
+        // Use golden ratio to distribute points evenly along the rectangle's perimeter
+        const normalizedPosition = (i * goldenRatio) % 1.0;
+        const position = normalizedPosition * perimeter;
+        
+        // Determine which edge the point is on
+        // Top edge: 0 to 2*halfWidth
+        // Right edge: 2*halfWidth to 2*halfWidth + 2*halfHeight
+        // Bottom edge: 2*halfWidth + 2*halfHeight to 4*halfWidth + 2*halfHeight
+        // Left edge: 4*halfWidth + 2*halfHeight to perimeter
+        
+        if (position < 2 * halfWidth) {
+          // Top edge (left to right)
+          startXCanvas = centerX - halfWidth + position;
+          startYCanvas = centerY - halfHeight;
+        } else if (position < 2 * halfWidth + 2 * halfHeight) {
+          // Right edge (top to bottom)
+          startXCanvas = centerX + halfWidth;
+          startYCanvas = centerY - halfHeight + (position - 2 * halfWidth);
+        } else if (position < 4 * halfWidth + 2 * halfHeight) {
+          // Bottom edge (right to left)
+          startXCanvas = centerX + halfWidth - (position - 2 * halfWidth - 2 * halfHeight);
+          startYCanvas = centerY + halfHeight;
+        } else {
+          // Left edge (bottom to top)
+          startXCanvas = centerX - halfWidth;
+          startYCanvas = centerY + halfHeight - (position - 4 * halfWidth - 2 * halfHeight);
+        }
+      }
 
       // Convert to canvas coordinates (relative to output canvas)
       const startX = startXCanvas - outputCanvasX.value;
@@ -669,6 +732,35 @@ function toggleAntiAliasing() {
             <span class="value">{{ maxWidth.toFixed(2) }}</span>
           </div>
         </div>
+        <div class="control-item">
+          <label for="outerEdge">
+            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <rect x="1" y="1" width="22" height="22" rx="2" stroke-dasharray="2 2"/>
+            </svg>
+            Line Origin
+          </label>
+          <div class="slider-container">
+            <input type="range" id="outerEdge" min="0" max="200" v-model.number="outerEdge" />
+            <span class="value">{{ outerEdge }}</span>
+          </div>
+        </div>
+        <div class="control-item checkbox-item">
+          <label for="outerEdgeShape" class="checkbox-label">
+            <input type="checkbox" id="outerEdgeShape" :checked="outerEdgeShape === 'circle'" @change="outerEdgeShape = outerEdgeShape === 'circle' ? 'rectangle' : 'circle'" />
+            <template v-if="outerEdgeShape === 'circle'">
+              <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+              </svg>
+            </template>
+            <template v-else>
+              <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="2" width="20" height="20" rx="2"/>
+              </svg>
+            </template>
+            {{ outerEdgeShape === 'circle' ? 'Circle' : 'Rectangle' }} Outer Edge
+          </label>
+        </div>
       </div>
 
       <!-- Output Canvas Section -->
@@ -679,19 +771,7 @@ function toggleAntiAliasing() {
           </svg>
           Output Canvas
         </h3>
-        <div class="control-item">
-          <label for="outerEdge">
-            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="18" height="18" rx="2"/>
-              <rect x="1" y="1" width="22" height="22" rx="2" stroke-dasharray="2 2"/>
-            </svg>
-            Outer Edge Margin
-          </label>
-          <div class="slider-container">
-            <input type="range" id="outerEdge" min="0" max="200" v-model.number="outerEdge" />
-            <span class="value">{{ outerEdge }}</span>
-          </div>
-        </div>
+        
       </div>
 
       <!-- Advanced Settings Section -->
@@ -750,11 +830,19 @@ function toggleAntiAliasing() {
           <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100" :r="2" fill="red" class="pointer-ignore" />
           
         <!-- Background elements (with pointer-ignore) -->
-        <!-- Outer edge circle (pink circle) -->
+        <!-- Outer edge shape (pink circle or rectangle) -->
         <circle 
+          v-if="outerEdgeShape === 'circle'"
           :cx="outputCanvasX + outputCanvasWidth / 2" 
           :cy="outputCanvasY + outputCanvasHeight / 2" 
           :r="Math.sqrt((outputCanvasWidth / 2) ** 2 + (outputCanvasHeight / 2) ** 2) + outerEdge"
+          fill="none" stroke="pink" stroke-width="2" stroke-dasharray="4 4" class="pointer-ignore" />
+        <rect 
+          v-else
+          :x="outputCanvasX - outerEdge" 
+          :y="outputCanvasY - outerEdge" 
+          :width="outputCanvasWidth + outerEdge * 2" 
+          :height="outputCanvasHeight + outerEdge * 2"
           fill="none" stroke="pink" stroke-width="2" stroke-dasharray="4 4" class="pointer-ignore" />
         <!-- Output canvas box (red rectangle) -->
         <rect :x="outputCanvasX" :y="outputCanvasY" :width="outputCanvasWidth" :height="outputCanvasHeight" fill="none"
@@ -793,10 +881,18 @@ function toggleAntiAliasing() {
           :cy="vanishingPointY * canvasHeight / 100" r="6" fill="#666" stroke="#333" stroke-width="2"
           @mousedown="startDragInnerLeniency" @touchstart="startDragInnerLeniency"
           :style="{ cursor: isDraggingInnerLeniency ? 'grabbing' : 'grab' }" />
-        <!-- Outer edge handle (on the outer circle, top-left/north-east position) -->
+        <!-- Outer edge handle -->
         <circle 
+          v-if="outerEdgeShape === 'circle'"
           :cx="outputCanvasX + outputCanvasWidth / 2 + (Math.sqrt((outputCanvasWidth / 2) ** 2 + (outputCanvasHeight / 2) ** 2) + outerEdge) * Math.cos(-Math.PI / 4)" 
           :cy="outputCanvasY + outputCanvasHeight / 2 + (Math.sqrt((outputCanvasWidth / 2) ** 2 + (outputCanvasHeight / 2) ** 2) + outerEdge) * Math.sin(-Math.PI / 4)" 
+          r="6" fill="pink" stroke="#333" stroke-width="2"
+          @mousedown="startDragOuterEdge" @touchstart="startDragOuterEdge"
+          :style="{ cursor: isDraggingOuterEdge ? 'grabbing' : 'grab' }" />
+        <circle 
+          v-else
+          :cx="outputCanvasX + outputCanvasWidth + outerEdge" 
+          :cy="outputCanvasY + outputCanvasHeight / 2" 
           r="6" fill="pink" stroke="#333" stroke-width="2"
           @mousedown="startDragOuterEdge" @touchstart="startDragOuterEdge"
           :style="{ cursor: isDraggingOuterEdge ? 'grabbing' : 'grab' }" />
