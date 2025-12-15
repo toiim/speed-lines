@@ -535,59 +535,209 @@ function toggleAntiAliasing() {
 <template>
   <div id="container">
     <div id="controls">
-      <div class="vanishing-point">
-        <div>
-          <label for="vanishingPointX">Vanishing Point X</label>
-          <input type="range" min="0" max="100" v-model.number="vanishingPointX" /><span>{{ vanishingPointX }}</span>
+      <!-- Vanishing Point Section -->
+      <div class="control-group">
+        <h3 class="group-header">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6m0 6v6M23 12h-6m-6 0H1"/>
+          </svg>
+          Vanishing Point
+        </h3>
+        <div class="control-item">
+          <label for="vanishingPointX">
+            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <polyline points="12,3 21,12 12,21"/>
+            </svg>
+            X Position
+          </label>
+          <div class="slider-container">
+            <input type="range" id="vanishingPointX" min="0" max="100" v-model.number="vanishingPointX" />
+            <span class="value">{{ vanishingPointX }}</span>
+          </div>
         </div>
-        <div>
-          <label for="vanishingPointY">Vanishing Point Y</label>
-          <input type="range" min="0" max="100" v-model.number="vanishingPointY" /><span>{{ vanishingPointY }}</span>
-        </div>
-        <div>
-          <label for="radius">Radius</label>
-          <input type="range" min="0" max="1000" v-model.number="radius" /><span>{{ radius }}</span>
-        </div>
-        <div>
-          <label for="speedLineCount">Speed Line Count</label>
-          <input type="range" min="10" max="1000" v-model.number="speedLineCount" /><span>{{ speedLineCount }}</span>
-        </div>
-        <div>
-          <label for="minWidth">Min Width</label>
-          <input type="range" step="0.01" min="0" max="10" v-model.number="minWidth" /><span>{{ minWidth }}</span>
-        </div>
-        <div>
-          <label for="maxWidth">Max Width</label>
-          <input type="range" step="0.01" min="1" max="50" v-model.number="maxWidth" /><span>{{ maxWidth }}</span>
-        </div>
-        <div>
-          <label for="outerLengthLeniency">Outer Length Leniency</label>
-          <input type="range" min="1" max="500" v-model.number="outerLengthLeniency" /><span>{{ outerLengthLeniency
-            }}</span>
-        </div>
-        <div>
-          <label for="innerLengthLeniency">Inner Length Leniency</label>
-          <input type="range" min="1" max="500" v-model.number="innerLengthLeniency" /><span>{{ innerLengthLeniency
-            }}</span>
-        </div>
-        <div>
-          <label for="outerEdge">Outer Edge</label>
-          <input type="range" min="0" max="200" v-model.number="outerEdge" /><span>{{ outerEdge }}</span>
-        </div>
-        <div>
-          <label for="seed">Seed</label>
-          <input type="number" v-model.number="seed" /><span>{{ seed }}</span>
-        </div>
-        <div>
-          <label for="threshold">Threshold</label>
-          <input type="range" min="1" max="255" v-model.number="threshold" /><span>{{ threshold }}</span>
+        <div class="control-item">
+          <label for="vanishingPointY">
+            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="3" x2="12" y2="21"/>
+              <polyline points="3,12 12,3 21,12"/>
+            </svg>
+            Y Position
+          </label>
+          <div class="slider-container">
+            <input type="range" id="vanishingPointY" min="0" max="100" v-model.number="vanishingPointY" />
+            <span class="value">{{ vanishingPointY }}</span>
+          </div>
         </div>
       </div>
-      <div>
-        <button @click="drawSpeedLines">Draw Speed Lines</button>
+
+      <!-- Radius & Length Section -->
+      <div class="control-group">
+        <h3 class="group-header">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+          </svg>
+          Radius & Length
+        </h3>
+        <div class="control-item">
+          <label for="radius">
+            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+            </svg>
+            Radius
+          </label>
+          <div class="slider-container">
+            <input type="range" id="radius" min="0" max="1000" v-model.number="radius" />
+            <span class="value">{{ radius }}</span>
+          </div>
+        </div>
+        <div class="control-item">
+          <label for="outerLengthLeniency">
+            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <circle cx="12" cy="12" r="7" stroke-dasharray="2 2"/>
+            </svg>
+            Outer Variance
+          </label>
+          <div class="slider-container">
+            <input type="range" id="outerLengthLeniency" min="1" max="500" v-model.number="outerLengthLeniency" />
+            <span class="value">{{ outerLengthLeniency }}</span>
+          </div>
+        </div>
+        <div class="control-item">
+          <label for="innerLengthLeniency">
+            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <circle cx="12" cy="12" r="5" stroke-dasharray="2 2"/>
+            </svg>
+            Inner Variance
+          </label>
+          <div class="slider-container">
+            <input type="range" id="innerLengthLeniency" min="1" max="500" v-model.number="innerLengthLeniency" />
+            <span class="value">{{ innerLengthLeniency }}</span>
+          </div>
+        </div>
       </div>
-      <div>
-        <button @click="toggleAntiAliasing">Toggle Anti Aliasing</button>
+
+      <!-- Line Properties Section -->
+      <div class="control-group">
+        <h3 class="group-header">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="2" y1="2" x2="22" y2="22"/>
+            <line x1="2" y1="22" x2="22" y2="2"/>
+          </svg>
+          Line Properties
+        </h3>
+        <div class="control-item">
+          <label for="speedLineCount">
+            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+            Line Count
+          </label>
+          <div class="slider-container">
+            <input type="range" id="speedLineCount" min="10" max="1000" v-model.number="speedLineCount" />
+            <span class="value">{{ speedLineCount }}</span>
+          </div>
+        </div>
+        <div class="control-item">
+          <label for="minWidth">
+            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="2" x2="12" y2="22"/>
+              <line x1="8" y1="6" x2="16" y2="6"/>
+            </svg>
+            Min Width
+          </label>
+          <div class="slider-container">
+            <input type="range" id="minWidth" step="0.01" min="0" max="10" v-model.number="minWidth" />
+            <span class="value">{{ minWidth.toFixed(2) }}</span>
+          </div>
+        </div>
+        <div class="control-item">
+          <label for="maxWidth">
+            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="2" x2="12" y2="22"/>
+              <line x1="6" y1="6" x2="18" y2="6"/>
+            </svg>
+            Max Width
+          </label>
+          <div class="slider-container">
+            <input type="range" id="maxWidth" step="0.01" min="1" max="50" v-model.number="maxWidth" />
+            <span class="value">{{ maxWidth.toFixed(2) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Output Canvas Section -->
+      <div class="control-group">
+        <h3 class="group-header">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+          </svg>
+          Output Canvas
+        </h3>
+        <div class="control-item">
+          <label for="outerEdge">
+            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <rect x="1" y="1" width="22" height="22" rx="2" stroke-dasharray="2 2"/>
+            </svg>
+            Outer Edge Margin
+          </label>
+          <div class="slider-container">
+            <input type="range" id="outerEdge" min="0" max="200" v-model.number="outerEdge" />
+            <span class="value">{{ outerEdge }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Advanced Settings Section -->
+      <div class="control-group">
+        <h3 class="group-header">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6m0 6v6M23 12h-6m-6 0H1"/>
+          </svg>
+          Advanced
+        </h3>
+        <div class="control-item">
+          <label for="seed">
+            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            Random Seed
+          </label>
+          <div class="input-container">
+            <input type="number" id="seed" v-model.number="seed" />
+            <span class="value">{{ seed }}</span>
+          </div>
+        </div>
+        <div class="control-item">
+          <label for="threshold">
+            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="20" height="20" rx="2"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+            Threshold
+          </label>
+          <div class="slider-container">
+            <input type="range" id="threshold" min="1" max="255" v-model.number="threshold" />
+            <span class="value">{{ threshold }}</span>
+          </div>
+        </div>
+        <div class="control-item checkbox-item">
+          <label for="isAntiAliasing" class="checkbox-label">
+            <input type="checkbox" id="isAntiAliasing" v-model="isAntiAliasing" />
+            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
+            </svg>
+            Anti-aliasing
+          </label>
+        </div>
       </div>
     </div>
     <div id="output">
@@ -671,6 +821,13 @@ circle {
   pointer-events: all;
 }
 
+#output {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
 #speed-lines {
   border: 1px solid red;
   display: block;
@@ -678,18 +835,249 @@ circle {
   height: auto;
 }
 
-.vanishing-point {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 200px;
-}
-
 #container {
   display: flex;
   flex-direction: row;
-  gap: 10px;
+  gap: 20px;
   width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+#controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 320px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+#controls::-webkit-scrollbar {
+  width: 8px;
+}
+
+#controls::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+#controls::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+#controls::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.control-group {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.icon-small {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.control-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.control-item label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #555;
+  cursor: pointer;
+}
+
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.slider-container input[type="range"] {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: #ddd;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.slider-container input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4a90e2;
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: background 0.2s;
+}
+
+.slider-container input[type="range"]::-webkit-slider-thumb:hover {
+  background: #357abd;
+}
+
+.slider-container input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4a90e2;
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: background 0.2s;
+}
+
+.slider-container input[type="range"]::-moz-range-thumb:hover {
+  background: #357abd;
+}
+
+.slider-container input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: #ddd;
+}
+
+.slider-container input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: #ddd;
+}
+
+.value {
+  min-width: 50px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4a90e2;
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  background: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+  overflow: hidden;
+}
+
+.input-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.input-container input[type="number"] {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-container input[type="number"]:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
+}
+
+.checkbox-item {
+  margin-top: 4px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #4a90e2;
+}
+
+.actions-group {
+  margin-top: 8px;
+  padding: 12px;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.action-button.primary {
+  background: #4a90e2;
+  color: white;
+  box-shadow: 0 2px 4px rgba(74, 144, 226, 0.3);
+}
+
+.action-button.primary:hover {
+  background: #357abd;
+  box-shadow: 0 4px 8px rgba(74, 144, 226, 0.4);
+  transform: translateY(-1px);
+}
+
+.action-button.primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(74, 144, 226, 0.3);
+}
+
+.action-button .icon {
+  width: 16px;
+  height: 16px;
 }
 
 .pointer-ignore {
