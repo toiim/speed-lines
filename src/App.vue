@@ -15,6 +15,8 @@ const canvasHeight = 600;
 const speedLineCanvas = ref<HTMLCanvasElement | null>(null);
 const svgElement = ref<SVGSVGElement | null>(null);
 const isDragging = ref(false);
+const isDraggingLeniency = ref(false);
+const isDraggingRadius = ref(false);
 
 onMounted(() => {
   drawSpeedLines();
@@ -54,12 +56,13 @@ function getSVGPoint(event: MouseEvent | TouchEvent): { x: number; y: number } |
 }
 
 function startDrag(event: MouseEvent | TouchEvent) {
+  if (isDraggingLeniency.value || isDraggingRadius.value) return;
   event.preventDefault();
   isDragging.value = true;
 }
 
 function drag(event: MouseEvent | TouchEvent) {
-  if (!isDragging.value) return;
+  if (!isDragging.value || isDraggingLeniency.value || isDraggingRadius.value) return;
   event.preventDefault();
 
   const point = getSVGPoint(event);
@@ -75,8 +78,98 @@ function drag(event: MouseEvent | TouchEvent) {
 }
 
 function stopDrag(event: MouseEvent | TouchEvent) {
+  if (isDraggingLeniency.value || isDraggingRadius.value) return;
   event.preventDefault();
   isDragging.value = false;
+}
+
+function startDragLeniency(event: MouseEvent | TouchEvent) {
+  event.preventDefault();
+  event.stopPropagation();
+  isDraggingLeniency.value = true;
+}
+
+function startDragRadius(event: MouseEvent | TouchEvent) {
+  event.preventDefault();
+  event.stopPropagation();
+  isDraggingRadius.value = true;
+}
+
+function dragLeniency(event: MouseEvent | TouchEvent) {
+  if (!isDraggingLeniency.value) return;
+  event.preventDefault();
+  event.stopPropagation();
+
+  const point = getSVGPoint(event);
+  if (!point) return;
+
+  const vpX = vanishingPointX.value * canvasWidth / 100;
+  const vpY = vanishingPointY.value * canvasHeight / 100;
+
+  // Calculate distance from vanishing point to mouse position
+  const dx = point.x - vpX;
+  const dy = point.y - vpY;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  // Update lengthLeniency based on distance from vanishing point
+  // lengthLeniency = distance - radius
+  const newLeniency = distance - radius.value;
+
+  // Clamp to valid range (1-100 based on input range)
+  lengthLeniency.value = Math.max(1, Math.min(100, newLeniency));
+}
+
+function dragRadius(event: MouseEvent | TouchEvent) {
+  if (!isDraggingRadius.value) return;
+  event.preventDefault();
+  event.stopPropagation();
+
+  const point = getSVGPoint(event);
+  if (!point) return;
+
+  const vpX = vanishingPointX.value * canvasWidth / 100;
+  const vpY = vanishingPointY.value * canvasHeight / 100;
+
+  // Calculate distance from vanishing point to mouse position
+  const dx = point.x - vpX;
+  const dy = point.y - vpY;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  // Update radius based on distance from vanishing point
+  // Clamp to valid range (0-1000 based on input range)
+  radius.value = Math.max(0, Math.min(1000, distance));
+}
+
+function stopDragLeniency(event: MouseEvent | TouchEvent) {
+  event.preventDefault();
+  event.stopPropagation();
+  isDraggingLeniency.value = false;
+}
+
+function stopDragRadius(event: MouseEvent | TouchEvent) {
+  event.preventDefault();
+  event.stopPropagation();
+  isDraggingRadius.value = false;
+}
+
+function handleMouseMove(event: MouseEvent | TouchEvent) {
+  if (isDraggingLeniency.value) {
+    dragLeniency(event);
+  } else if (isDraggingRadius.value) {
+    dragRadius(event);
+  } else if (isDragging.value) {
+    drag(event);
+  }
+}
+
+function handleMouseUp(event: MouseEvent | TouchEvent) {
+  if (isDraggingLeniency.value) {
+    stopDragLeniency(event);
+  } else if (isDraggingRadius.value) {
+    stopDragRadius(event);
+  } else if (isDragging.value) {
+    stopDrag(event);
+  }
 }
 
 function drawSpeedLines() {
@@ -191,7 +284,7 @@ function drawSpeedLines() {
         <label for="minWidth">Min Width</label>
         <input type="range" min="1" max="10" v-model.number="minWidth" /><span>{{ minWidth }}</span>
         <label for="maxWidth">Max Width</label>
-        <input type="range" min="1" max="10" v-model.number="maxWidth" /><span>{{ maxWidth }}</span>
+        <input type="range" min="1" max="50" v-model.number="maxWidth" /><span>{{ maxWidth }}</span>
         <label for="lengthLeniency">Length Leniency</label>
         <input type="range" min="1" max="100" v-model.number="lengthLeniency" /><span>{{ lengthLeniency }}</span>
       </div>
@@ -201,18 +294,28 @@ function drawSpeedLines() {
     </div>
     <div id="output">
       <svg ref="svgElement" :width="canvasWidth" :height="canvasHeight" :viewBox="`0 0 ${canvasWidth} ${canvasHeight}`"
-        @mousemove="drag" @mouseup="stopDrag" @mouseleave="stopDrag" @touchmove="drag" @touchend="stopDrag">
-
-        <!-- Main radius circle -->
-        <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100" :r="radius"
-          @mousedown="startDrag" @touchstart="startDrag" :style="{ cursor: isDragging ? 'grabbing' : 'grab' }" />
-        <!-- Inner variance circle (radius - lengthLeniency) -->
-        <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100"
-          :r="Math.max(0, radius - lengthLeniency)" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="4 4" />
-
+        @mousemove="handleMouseMove" @mouseup="handleMouseUp" @mouseleave="handleMouseUp" @touchmove="handleMouseMove"
+        @touchend="handleMouseUp">
         <!-- Outer variance circle (radius + lengthLeniency) -->
         <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100"
           :r="radius + lengthLeniency" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="4 4" />
+
+        <!-- Leniency handle circle (on the edge of outer variance circle) -->
+        <circle :cx="vanishingPointX * canvasWidth / 100 + radius + lengthLeniency"
+          :cy="vanishingPointY * canvasHeight / 100" r="6" fill="#666" stroke="#333" stroke-width="2"
+          @mousedown="startDragLeniency" @touchstart="startDragLeniency"
+          :style="{ cursor: isDraggingLeniency ? 'grabbing' : 'grab' }" />
+        <!-- Main radius circle -->
+        <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100" :r="radius"
+          @mousedown="startDrag" @touchstart="startDrag" :style="{ cursor: isDragging ? 'grabbing' : 'grab' }" />
+        <!-- Radius handle circle (on the edge of main radius circle) -->
+        <circle :cx="vanishingPointX * canvasWidth / 100 + radius" :cy="vanishingPointY * canvasHeight / 100" r="6"
+          fill="#999" stroke="#333" stroke-width="2" @mousedown="startDragRadius" @touchstart="startDragRadius"
+          :style="{ cursor: isDraggingRadius ? 'grabbing' : 'grab' }" />
+        <!-- Inner variance circle (radius - lengthLeniency) -->
+        <circle class="pointer-ignore" :cx="vanishingPointX * canvasWidth / 100"
+          :cy="vanishingPointY * canvasHeight / 100" :r="Math.max(0, radius - lengthLeniency)" fill="none" stroke="#888"
+          stroke-width="1" stroke-dasharray="4 4" />
       </svg>
       <canvas ref="speedLineCanvas" id="speed-lines" :width="canvasWidth" :height="canvasHeight"></canvas>
     </div>
@@ -250,5 +353,9 @@ circle {
   flex-direction: row;
   gap: 10px;
   width: 100%;
+}
+
+.pointer-ignore {
+  pointer-events: none;
 }
 </style>
