@@ -29,27 +29,36 @@ function drawSpeedLines() {
 
     ctx.fillStyle = '#000';
 
-    for (let i = 0; i < speedLineCount.value; i++) {
-      // pick a random point on the edge of the canvas
-      let startX: number, startY: number;
-      const edge = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+    // Calculate perimeter for golden ratio distribution
+    const perimeter = 2 * canvasWidth + 2 * canvasHeight;
+    const goldenRatio = 1.618033988749895; // Golden ratio (phi)
 
-      if (edge === 0) {
-        // top edge
-        startX = Math.random() * canvasWidth;
+    for (let i = 0; i < speedLineCount.value; i++) {
+      // Use golden ratio to distribute points evenly along the perimeter
+      // This creates a sequence that naturally fills gaps (Fibonacci-style)
+      // Multiply by golden ratio and take modulo 1 to get normalized position, then scale to perimeter
+      const normalizedPosition = (i * goldenRatio) % 1.0;
+      const perimeterPosition = normalizedPosition * perimeter;
+      
+      // Convert perimeter position to x,y coordinates on the edge
+      let startX: number, startY: number;
+      
+      if (perimeterPosition < canvasWidth) {
+        // Top edge (left to right)
+        startX = perimeterPosition;
         startY = 0;
-      } else if (edge === 1) {
-        // right edge
+      } else if (perimeterPosition < canvasWidth + canvasHeight) {
+        // Right edge (top to bottom)
         startX = canvasWidth;
-        startY = Math.random() * canvasHeight;
-      } else if (edge === 2) {
-        // bottom edge
-        startX = Math.random() * canvasWidth;
+        startY = perimeterPosition - canvasWidth;
+      } else if (perimeterPosition < 2 * canvasWidth + canvasHeight) {
+        // Bottom edge (right to left)
+        startX = canvasWidth - (perimeterPosition - canvasWidth - canvasHeight);
         startY = canvasHeight;
       } else {
-        // left edge
+        // Left edge (bottom to top)
         startX = 0;
-        startY = Math.random() * canvasHeight;
+        startY = canvasHeight - (perimeterPosition - 2 * canvasWidth - canvasHeight);
       }
 
       // draw towards the vanishing point, stopping at the radius
