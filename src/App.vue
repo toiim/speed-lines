@@ -725,7 +725,7 @@ function toggleAntiAliasing() {
             Threshold
           </label>
           <div class="slider-container">
-            <input type="range" id="threshold" min="1" max="255" v-model.number="threshold" />
+            <input :disabled="!isAntiAliasing" type="range" id="threshold" min="1" max="255" v-model.number="threshold" />
             <span class="value">{{ threshold }}</span>
           </div>
         </div>
@@ -836,6 +836,7 @@ circle {
 }
 
 #container {
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
   display: flex;
   flex-direction: row;
   gap: 20px;
@@ -906,179 +907,6 @@ circle {
   flex-shrink: 0;
 }
 
-.control-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.control-item label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #555;
-  cursor: pointer;
-}
-
-.slider-container {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.slider-container input[type="range"] {
-  flex: 1;
-  height: 6px;
-  border-radius: 3px;
-  background: #ddd;
-  outline: none;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-.slider-container input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #4a90e2;
-  cursor: pointer;
-  border: 2px solid #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  transition: background 0.2s;
-}
-
-.slider-container input[type="range"]::-webkit-slider-thumb:hover {
-  background: #357abd;
-}
-
-.slider-container input[type="range"]::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #4a90e2;
-  cursor: pointer;
-  border: 2px solid #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  transition: background 0.2s;
-}
-
-.slider-container input[type="range"]::-moz-range-thumb:hover {
-  background: #357abd;
-}
-
-.slider-container input[type="range"]::-webkit-slider-runnable-track {
-  height: 6px;
-  border-radius: 3px;
-  background: #ddd;
-}
-
-.slider-container input[type="range"]::-moz-range-track {
-  height: 6px;
-  border-radius: 3px;
-  background: #ddd;
-}
-
-.value {
-  min-width: 50px;
-  text-align: right;
-  font-size: 12px;
-  font-weight: 600;
-  color: #4a90e2;
-  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-  background: #fff;
-  padding: 4px 8px;
-  border-radius: 4px;
-  border: 1px solid #e0e0e0;
-  overflow: hidden;
-}
-
-.input-container {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.input-container input[type="number"] {
-  flex: 1;
-  padding: 6px 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 13px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.input-container input[type="number"]:focus {
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
-}
-
-.checkbox-item {
-  margin-top: 4px;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: #4a90e2;
-}
-
-.actions-group {
-  margin-top: 8px;
-  padding: 12px;
-}
-
-.action-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 12px 16px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.action-button.primary {
-  background: #4a90e2;
-  color: white;
-  box-shadow: 0 2px 4px rgba(74, 144, 226, 0.3);
-}
-
-.action-button.primary:hover {
-  background: #357abd;
-  box-shadow: 0 4px 8px rgba(74, 144, 226, 0.4);
-  transform: translateY(-1px);
-}
-
-.action-button.primary:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(74, 144, 226, 0.3);
-}
-
-.action-button .icon {
-  width: 16px;
-  height: 16px;
-}
 
 .pointer-ignore {
   pointer-events: none;
