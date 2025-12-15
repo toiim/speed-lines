@@ -545,6 +545,18 @@ function drawSpeedLines() {
         const p4X = endX + perpX * endWidthHalf;
         const p4Y = endY + perpY * endWidthHalf;
 
+        // Quick check: calculate bounding box and see if it intersects with canvas bounds
+        const minX = Math.min(p1X, p2X, p3X, p4X);
+        const maxX = Math.max(p1X, p2X, p3X, p4X);
+        const minY = Math.min(p1Y, p2Y, p3Y, p4Y);
+        const maxY = Math.max(p1Y, p2Y, p3Y, p4Y);
+
+        // Check if bounding box intersects with canvas bounds (0, 0, outputCanvasWidth, outputCanvasHeight)
+        if (maxX < 0 || minX > outputCanvasWidth.value || maxY < 0 || minY > outputCanvasHeight.value) {
+          // Line is completely outside canvas bounds, skip drawing
+          continue;
+        }
+
         ctx.beginPath();
         ctx.moveTo(p1X, p1Y);
         ctx.lineTo(p2X, p2Y);
