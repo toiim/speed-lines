@@ -16,8 +16,9 @@ const canvasHeight = 600;
 // Output canvas box dimensions (initially matches canvas size)
 const outputCanvasWidth = ref(800);
 const outputCanvasHeight = ref(600);
-const outputCanvasX = ref(0);
-const outputCanvasY = ref(0);
+// Center the box in the SVG
+const outputCanvasX = ref((canvasWidth - 800) / 2);
+const outputCanvasY = ref((canvasHeight - 600) / 2);
 
 const speedLineCanvas = ref<HTMLCanvasElement | null>(null);
 const svgElement = ref<SVGSVGElement | null>(null);
@@ -35,7 +36,7 @@ onMounted(() => {
   drawSpeedLines();
 });
 
-watch([vanishingPointX, vanishingPointY, radius, speedLineCount, minWidth, maxWidth, outerLengthLeniency, innerLengthLeniency, threshold, isAntiAliasing, outputCanvasWidth, outputCanvasHeight], async () => {
+watch([vanishingPointX, vanishingPointY, radius, speedLineCount, minWidth, maxWidth, outerLengthLeniency, innerLengthLeniency, threshold, isAntiAliasing, outputCanvasWidth, outputCanvasHeight, outputCanvasX, outputCanvasY], async () => {
   await nextTick();
   drawSpeedLines();
 });
@@ -240,9 +241,16 @@ function dragOutputWidth(event: MouseEvent | TouchEvent) {
   const point = getSVGPoint(event);
   if (!point) return;
 
-  // Update width based on mouse X position relative to box left edge
-  const newWidth = Math.max(50, Math.min(canvasWidth - outputCanvasX.value, point.x - outputCanvasX.value));
+  // Calculate center of the box
+  const centerX = outputCanvasX.value + outputCanvasWidth.value / 2;
+  
+  // Calculate distance from center to mouse (doubled to get full width)
+  const distanceFromCenter = Math.abs(point.x - centerX);
+  const newWidth = Math.max(50, Math.min(canvasWidth, distanceFromCenter * 2));
+  
+  // Update width and x position to keep box centered
   outputCanvasWidth.value = newWidth;
+  outputCanvasX.value = (canvasWidth - newWidth) / 2;
 }
 
 function dragOutputHeight(event: MouseEvent | TouchEvent) {
@@ -253,9 +261,16 @@ function dragOutputHeight(event: MouseEvent | TouchEvent) {
   const point = getSVGPoint(event);
   if (!point) return;
 
-  // Update height based on mouse Y position relative to box top edge
-  const newHeight = Math.max(50, Math.min(canvasHeight - outputCanvasY.value, point.y - outputCanvasY.value));
+  // Calculate center of the box
+  const centerY = outputCanvasY.value + outputCanvasHeight.value / 2;
+  
+  // Calculate distance from center to mouse (doubled to get full height)
+  const distanceFromCenter = Math.abs(point.y - centerY);
+  const newHeight = Math.max(50, Math.min(canvasHeight, distanceFromCenter * 2));
+  
+  // Update height and y position to keep box centered
   outputCanvasHeight.value = newHeight;
+  outputCanvasY.value = (canvasHeight - newHeight) / 2;
 }
 
 function stopDragOutputWidth(event: MouseEvent | TouchEvent) {
@@ -318,8 +333,13 @@ function drawSpeedLines() {
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, outputCanvasWidth.value, outputCanvasHeight.value);
 
-    const vpX = vanishingPointX.value * canvasWidth / 100;
-    const vpY = vanishingPointY.value * canvasHeight / 100;
+    // Convert vanishing point from SVG coordinates to canvas coordinates
+    // The vanishing point is in SVG space, but we need it in canvas space
+    const vpXSVG = vanishingPointX.value * canvasWidth / 100;
+    const vpYSVG = vanishingPointY.value * canvasHeight / 100;
+    // Convert to canvas coordinates by subtracting the canvas offset
+    const vpX = vpXSVG - outputCanvasX.value;
+    const vpY = vpYSVG - outputCanvasY.value;
     const r = radius.value;
 
     ctx.fillStyle = '#000';
