@@ -17,12 +17,15 @@ const svgElement = ref<SVGSVGElement | null>(null);
 const isDragging = ref(false);
 const isDraggingLeniency = ref(false);
 const isDraggingRadius = ref(false);
+const dragOffset = ref<{ x: number; y: number } | null>(null);
+const threshold = ref(50);
+const isAntiAliasing = ref(true);
 
 onMounted(() => {
   drawSpeedLines();
 });
 
-watch([vanishingPointX, vanishingPointY, radius, speedLineCount, minWidth, maxWidth, lengthLeniency], () => {
+watch([vanishingPointX, vanishingPointY, radius, speedLineCount, minWidth, maxWidth, lengthLeniency, threshold, isAntiAliasing], () => {
   drawSpeedLines();
 });
 
@@ -58,19 +61,35 @@ function getSVGPoint(event: MouseEvent | TouchEvent): { x: number; y: number } |
 function startDrag(event: MouseEvent | TouchEvent) {
   if (isDraggingLeniency.value || isDraggingRadius.value) return;
   event.preventDefault();
+  
+  const point = getSVGPoint(event);
+  if (!point) return;
+  
+  // Calculate offset from click position to vanishing point center
+  const vpX = vanishingPointX.value * canvasWidth / 100;
+  const vpY = vanishingPointY.value * canvasHeight / 100;
+  dragOffset.value = {
+    x: point.x - vpX,
+    y: point.y - vpY
+  };
+  
   isDragging.value = true;
 }
 
 function drag(event: MouseEvent | TouchEvent) {
-  if (!isDragging.value || isDraggingLeniency.value || isDraggingRadius.value) return;
+  if (!isDragging.value || isDraggingLeniency.value || isDraggingRadius.value || !dragOffset.value) return;
   event.preventDefault();
 
   const point = getSVGPoint(event);
   if (!point) return;
 
+  // Calculate new vanishing point position by subtracting the stored offset
+  const newVpX = point.x - dragOffset.value.x;
+  const newVpY = point.y - dragOffset.value.y;
+
   // Convert SVG coordinates to percentage values
-  const xPercent = (point.x / canvasWidth) * 100;
-  const yPercent = (point.y / canvasHeight) * 100;
+  const xPercent = (newVpX / canvasWidth) * 100;
+  const yPercent = (newVpY / canvasHeight) * 100;
 
   // Clamp values to valid range (0-100)
   vanishingPointX.value = Math.max(0, Math.min(100, xPercent));
@@ -81,6 +100,7 @@ function stopDrag(event: MouseEvent | TouchEvent) {
   if (isDraggingLeniency.value || isDraggingRadius.value) return;
   event.preventDefault();
   isDragging.value = false;
+  dragOffset.value = null;
 }
 
 function startDragLeniency(event: MouseEvent | TouchEvent) {
@@ -115,8 +135,8 @@ function dragLeniency(event: MouseEvent | TouchEvent) {
   // lengthLeniency = distance - radius
   const newLeniency = distance - radius.value;
 
-  // Clamp to valid range (1-100 based on input range)
-  lengthLeniency.value = Math.max(1, Math.min(100, newLeniency));
+  // Clamp to valid range (1-500 based on input range)
+  lengthLeniency.value = Math.max(1, Math.min(500, newLeniency));
 }
 
 function dragRadius(event: MouseEvent | TouchEvent) {
@@ -175,7 +195,9 @@ function handleMouseUp(event: MouseEvent | TouchEvent) {
 function drawSpeedLines() {
   const ctx = speedLineCanvas.value?.getContext('2d');
   if (ctx) {
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     const vpX = vanishingPointX.value * canvasWidth / 100;
     const vpY = vanishingPointY.value * canvasHeight / 100;
@@ -263,8 +285,43 @@ function drawSpeedLines() {
         ctx.fill();
       }
     }
+    if (!isAntiAliasing.value) {
+      // Apply threshold filter to remove anti-aliasing
+      // Convert pixels to black or white based on threshold value
+      const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+      const data = imageData.data;
+      const thresholdValue = threshold.value;
+      
+      // Process pixels in a single pass for optimal performance
+      // Each pixel has 4 values: R, G, B, A
+      for (let i = 0; i < data.length; i += 4) {
+        // Calculate grayscale value using standard luminance formula
+        // Using integer arithmetic for better performance
+        const r = data[i] ?? 0;
+        const g = data[i + 1] ?? 0;
+        const b = data[i + 2] ?? 0;
+        const gray = Math.round(r * 0.299 + g * 0.587 + b * 0.114);
+        
+        // Apply threshold: >= threshold becomes white (255), < threshold becomes black (0)
+        const value = gray >= thresholdValue ? 255 : 0;
+        
+        // Set RGB to the thresholded value, keep alpha channel unchanged
+        data[i] = value;     // R
+        data[i + 1] = value; // G
+        data[i + 2] = value; // B
+        // data[i + 3] remains unchanged (alpha)
+      }
+      
+      // Put the processed image data back to the canvas
+      ctx.putImageData(imageData, 0, 0);
+    }
   }
 }
+
+function toggleAntiAliasing() {
+  isAntiAliasing.value = !isAntiAliasing.value;
+}
+
 
 
 </script>
@@ -282,14 +339,19 @@ function drawSpeedLines() {
         <label for="speedLineCount">Speed Line Count</label>
         <input type="range" min="10" max="1000" v-model.number="speedLineCount" /><span>{{ speedLineCount }}</span>
         <label for="minWidth">Min Width</label>
-        <input type="range" min="1" max="10" v-model.number="minWidth" /><span>{{ minWidth }}</span>
+        <input type="range" min="0" max="10" v-model.number="minWidth" /><span>{{ minWidth }}</span>
         <label for="maxWidth">Max Width</label>
         <input type="range" min="1" max="50" v-model.number="maxWidth" /><span>{{ maxWidth }}</span>
         <label for="lengthLeniency">Length Leniency</label>
-        <input type="range" min="1" max="100" v-model.number="lengthLeniency" /><span>{{ lengthLeniency }}</span>
+        <input type="range" min="1" max="500" v-model.number="lengthLeniency" /><span>{{ lengthLeniency }}</span>
+        <label for="threshold">Threshold</label>
+        <input type="range" min="1" max="255" v-model.number="threshold" /><span>{{ threshold }}</span>
       </div>
       <div>
         <button @click="drawSpeedLines">Draw Speed Lines</button>
+      </div>
+      <div>
+        <button @click="toggleAntiAliasing">Toggle Anti Aliasing</button>
       </div>
     </div>
     <div id="output">
