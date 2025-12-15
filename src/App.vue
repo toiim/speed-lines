@@ -13,10 +13,71 @@ const canvasWidth = 800;
 const canvasHeight = 600;
 
 const speedLineCanvas = ref<HTMLCanvasElement | null>(null);
+const svgElement = ref<SVGSVGElement | null>(null);
+const isDragging = ref(false);
 
 onMounted(() => {
   drawSpeedLines();
 });
+
+watch([vanishingPointX, vanishingPointY, radius, speedLineCount, minWidth, maxWidth, lengthLeniency], () => {
+  drawSpeedLines();
+});
+
+function getSVGPoint(event: MouseEvent | TouchEvent): { x: number; y: number } | null {
+  if (!svgElement.value) return null;
+  
+  const svg = svgElement.value;
+  const rect = svg.getBoundingClientRect();
+  
+  let clientX: number, clientY: number;
+  
+  if (event instanceof MouseEvent) {
+    clientX = event.clientX;
+    clientY = event.clientY;
+  } else {
+    const touch = event.touches[0] || event.changedTouches[0];
+    if (!touch) return null;
+    clientX = touch.clientX;
+    clientY = touch.clientY;
+  }
+  
+  // Convert screen coordinates to SVG coordinates
+  // Scale based on the ratio of SVG viewBox to actual rendered size
+  const scaleX = canvasWidth / rect.width;
+  const scaleY = canvasHeight / rect.height;
+  
+  const x = (clientX - rect.left) * scaleX;
+  const y = (clientY - rect.top) * scaleY;
+  
+  return { x, y };
+}
+
+function startDrag(event: MouseEvent | TouchEvent) {
+  event.preventDefault();
+  isDragging.value = true;
+}
+
+function drag(event: MouseEvent | TouchEvent) {
+  if (!isDragging.value) return;
+  event.preventDefault();
+  
+  const point = getSVGPoint(event);
+  if (!point) return;
+  
+  // Convert SVG coordinates to percentage values
+  const xPercent = (point.x / canvasWidth) * 100;
+  const yPercent = (point.y / canvasHeight) * 100;
+  
+  // Clamp values to valid range (0-100)
+  vanishingPointX.value = Math.max(0, Math.min(100, xPercent));
+  vanishingPointY.value = Math.max(0, Math.min(100, yPercent));
+}
+
+function stopDrag(event: MouseEvent | TouchEvent) {
+  event.preventDefault();
+  isDragging.value = false;
+}
 
 function drawSpeedLines() {
   const ctx = speedLineCanvas.value?.getContext('2d');
@@ -139,12 +200,29 @@ function drawSpeedLines() {
       </div>
     </div>
     <div id="output">
-      <svg :width="canvasWidth" :height="canvasHeight" :viewBox="`0 0 ${canvasWidth} ${canvasHeight}`">
+      <svg 
+        ref="svgElement"
+        :width="canvasWidth" 
+        :height="canvasHeight" 
+        :viewBox="`0 0 ${canvasWidth} ${canvasHeight}`"
+        @mousemove="drag"
+        @mouseup="stopDrag"
+        @mouseleave="stopDrag"
+        @touchmove="drag"
+        @touchend="stopDrag"
+      >
         <div class="lengthLeniency">
           <label for="lengthLeniency">Length Leniency</label>
           <input type="range" min="1" max="100" v-model="lengthLeniency" /><span>{{ lengthLeniency }}</span>
         </div>
-        <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100" :r="radius" />
+        <circle 
+          :cx="vanishingPointX * canvasWidth / 100" 
+          :cy="vanishingPointY * canvasHeight / 100" 
+          :r="radius"
+          @mousedown="startDrag"
+          @touchstart="startDrag"
+          :style="{ cursor: isDragging ? 'grabbing' : 'grab' }"
+        />
       </svg>
       <canvas ref="speedLineCanvas" id="speed-lines" :width="canvasWidth" :height="canvasHeight"></canvas>
     </div>
@@ -158,6 +236,12 @@ svg {
   width: 800px;
   height: 600px;
   border: 1px solid black;
+  position: relative;
+  user-select: none;
+}
+
+circle {
+  pointer-events: all;
 }
 
 #speed-lines {
