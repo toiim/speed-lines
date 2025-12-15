@@ -491,6 +491,10 @@ function toggleAntiAliasing() {
       <svg ref="svgElement" :width="canvasWidth" :height="canvasHeight" :viewBox="`0 0 ${canvasWidth} ${canvasHeight}`"
         @mousemove="handleMouseMove" @mouseup="handleMouseUp" @mouseleave="handleMouseUp" @touchmove="handleMouseMove"
         @touchend="handleMouseUp">
+                <!-- Main radius circle (interactive, no pointer-ignore) -->
+                <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100" :r="radius"
+          @mousedown="startDrag" @touchstart="startDrag" :style="{ cursor: isDragging ? 'grabbing' : 'grab' }" />
+        <!-- Background elements (with pointer-ignore) -->
         <!-- Output canvas box (red rectangle) -->
         <rect 
           :x="outputCanvasX" 
@@ -503,6 +507,16 @@ function toggleAntiAliasing() {
           stroke-dasharray="4 4"
           class="pointer-ignore"
         />
+        <!-- Outer variance circle (radius + outerLengthLeniency) -->
+        <circle class="pointer-ignore" :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100"
+          :r="radius + outerLengthLeniency" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="4 4" />
+        <!-- Inner variance circle (radius - innerLengthLeniency) -->
+        <circle class="pointer-ignore" :cx="vanishingPointX * canvasWidth / 100"
+          :cy="vanishingPointY * canvasHeight / 100" :r="Math.max(0, radius - innerLengthLeniency)" fill="none" stroke="#888"
+          stroke-width="1" stroke-dasharray="4 4" />
+
+        
+        <!-- Handles (rendered last, on top) -->
         <!-- Width resize handle (right edge, center) -->
         <circle 
           :cx="outputCanvasX + outputCanvasWidth" 
@@ -527,26 +541,15 @@ function toggleAntiAliasing() {
           @touchstart="startDragOutputHeight"
           :style="{ cursor: isDraggingOutputHeight ? 'ns-resize' : 'ns-resize' }" 
         />
-        <!-- Outer variance circle (radius + outerLengthLeniency) -->
-        <circle class="pointer-ignore" :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100"
-          :r="radius + outerLengthLeniency" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="4 4" />
-
         <!-- Outer leniency handle circle (on the edge of outer variance circle) -->
         <circle :cx="vanishingPointX * canvasWidth / 100 + radius + outerLengthLeniency"
           :cy="vanishingPointY * canvasHeight / 100" r="6" fill="#666" stroke="#333" stroke-width="2"
           @mousedown="startDragOuterLeniency" @touchstart="startDragOuterLeniency"
           :style="{ cursor: isDraggingOuterLeniency ? 'grabbing' : 'grab' }" />
-        <!-- Main radius circle -->
-        <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100" :r="radius"
-          @mousedown="startDrag" @touchstart="startDrag" :style="{ cursor: isDragging ? 'grabbing' : 'grab' }" />
         <!-- Radius handle circle (on the edge of main radius circle) -->
         <circle :cx="vanishingPointX * canvasWidth / 100 + radius" :cy="vanishingPointY * canvasHeight / 100" r="6"
           fill="#999" stroke="#333" stroke-width="2" @mousedown="startDragRadius" @touchstart="startDragRadius"
           :style="{ cursor: isDraggingRadius ? 'grabbing' : 'grab' }" />
-        <!-- Inner variance circle (radius - innerLengthLeniency) -->
-        <circle class="pointer-ignore" :cx="vanishingPointX * canvasWidth / 100"
-          :cy="vanishingPointY * canvasHeight / 100" :r="Math.max(0, radius - innerLengthLeniency)" fill="none" stroke="#888"
-          stroke-width="1" stroke-dasharray="4 4" />
         <!-- Inner leniency handle circle (on the edge of inner variance circle) -->
         <circle :cx="vanishingPointX * canvasWidth / 100 + Math.max(0, radius - innerLengthLeniency)"
           :cy="vanishingPointY * canvasHeight / 100" r="6" fill="#666" stroke="#333" stroke-width="2"
