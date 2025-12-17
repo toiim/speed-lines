@@ -12,6 +12,8 @@ const innerLengthLeniency = ref(50); // number of pixels that can be shorter tha
 const outerEdge = ref(50); // margin/padding outside the output canvas for line starting points
 const outerEdgeShape = ref<'circle' | 'rectangle'>('circle'); // shape of the outer edge
 const seed = ref(12345); // seed for deterministic random variance
+const lineDistribution = ref(0); // 0 = pure fibonacci, 1 = grouped
+const lineGroupCount = ref(10); // number of groups when distribution is grouped
 
 const canvasWidth = 800;
 const canvasHeight = 600;
@@ -41,7 +43,7 @@ onMounted(() => {
   drawSpeedLines();
 });
 
-watch([vanishingPointX, vanishingPointY, radius, speedLineCount, minWidth, maxWidth, outerLengthLeniency, innerLengthLeniency, threshold, isAntiAliasing, outputCanvasWidth, outputCanvasHeight, outputCanvasX, outputCanvasY, seed, outerEdge, outerEdgeShape], async () => {
+watch([vanishingPointX, vanishingPointY, radius, speedLineCount, minWidth, maxWidth, outerLengthLeniency, innerLengthLeniency, threshold, isAntiAliasing, outputCanvasWidth, outputCanvasHeight, outputCanvasX, outputCanvasY, seed, outerEdge, outerEdgeShape, lineDistribution, lineGroupCount], async () => {
   await nextTick();
   drawSpeedLines();
 });
@@ -439,66 +441,138 @@ function drawSpeedLines() {
     // Combine seed with line count to ensure same seed + same line count = same pattern
     const rng = seededRandom(seed.value + speedLineCount.value * 1000);
 
+    // Helper function to calculate position using fibonacci distribution
+    function getFibonacciPosition(index: number, total: number, shape: 'circle' | 'rectangle'): { x: number; y: number; angle?: number; perimeterPos?: number } {
+      const goldenRatio = 1.618033988749895;
+      const normalizedPosition = (index * goldenRatio) % 1.0;
+
+      if (shape === 'circle') {
+        const baseRadius = Math.sqrt((outputCanvasWidth.value / 2) ** 2 + (outputCanvasHeight.value / 2) ** 2);
+        const outerCircleRadius = baseRadius + outerEdge.value;
+        const circumference = 2 * Math.PI * outerCircleRadius;
+        const arcLength = normalizedPosition * circumference;
+        const angle = arcLength / outerCircleRadius;
+        return {
+          x: centerX + Math.cos(angle) * outerCircleRadius,
+          y: centerY + Math.sin(angle) * outerCircleRadius,
+          angle: angle
+        };
+      } else {
+        const halfWidth = outputCanvasWidth.value / 2 + outerEdge.value;
+        const halfHeight = outputCanvasHeight.value / 2 + outerEdge.value;
+        const perimeter = 2 * (halfWidth * 2 + halfHeight * 2);
+        const position = normalizedPosition * perimeter;
+
+        let x: number, y: number;
+        if (position < 2 * halfWidth) {
+          x = centerX - halfWidth + position;
+          y = centerY - halfHeight;
+        } else if (position < 2 * halfWidth + 2 * halfHeight) {
+          x = centerX + halfWidth;
+          y = centerY - halfHeight + (position - 2 * halfWidth);
+        } else if (position < 4 * halfWidth + 2 * halfHeight) {
+          x = centerX + halfWidth - (position - 2 * halfWidth - 2 * halfHeight);
+          y = centerY + halfHeight;
+        } else {
+          x = centerX - halfWidth;
+          y = centerY + halfHeight - (position - 4 * halfWidth - 2 * halfHeight);
+        }
+        return { x, y, perimeterPos: position };
+      }
+    }
+
+    // Helper function to find closest group based on angular/perimeter position
+    function findClosestGroup(linePos: { angle?: number; perimeterPos?: number }, groupCenters: Array<{ angle?: number; perimeterPos?: number }>, shape: 'circle' | 'rectangle'): number {
+      if (shape === 'circle' && linePos.angle !== undefined) {
+        // For circle, use angular distance
+        let minDist = Infinity;
+        let closestGroup = 0;
+        for (let g = 0; g < groupCenters.length; g++) {
+          const groupCenter = groupCenters[g];
+          if (!groupCenter || groupCenter.angle === undefined) continue;
+          // Calculate angular distance (handling wrap-around)
+          let dist = Math.abs(linePos.angle - groupCenter.angle);
+          dist = Math.min(dist, Math.PI * 2 - dist); // Handle wrap-around
+          if (dist < minDist) {
+            minDist = dist;
+            closestGroup = g;
+          }
+        }
+        return closestGroup;
+      } else if (shape === 'rectangle' && linePos.perimeterPos !== undefined) {
+        // For rectangle, use perimeter distance
+        let minDist = Infinity;
+        let closestGroup = 0;
+        const halfWidth = outputCanvasWidth.value / 2 + outerEdge.value;
+        const halfHeight = outputCanvasHeight.value / 2 + outerEdge.value;
+        const perimeter = 2 * (halfWidth * 2 + halfHeight * 2);
+        
+        for (let g = 0; g < groupCenters.length; g++) {
+          const groupCenter = groupCenters[g];
+          if (!groupCenter || groupCenter.perimeterPos === undefined) continue;
+          // Calculate distance along perimeter (handling wrap-around)
+          let dist = Math.abs(linePos.perimeterPos - groupCenter.perimeterPos);
+          dist = Math.min(dist, perimeter - dist); // Handle wrap-around
+          if (dist < minDist) {
+            minDist = dist;
+            closestGroup = g;
+          }
+        }
+        return closestGroup;
+      }
+      return 0;
+    }
+
+    // Pre-calculate group centers using fibonacci distribution
+    const numGroups = Math.max(1, Math.floor(lineGroupCount.value));
+    const groupCenters: Array<{ x: number; y: number; angle?: number; perimeterPos?: number }> = [];
+    for (let g = 0; g < numGroups; g++) {
+      groupCenters.push(getFibonacciPosition(g, numGroups, outerEdgeShape.value));
+    }
+
     for (let i = 0; i < speedLineCount.value; i++) {
       let startXCanvas: number;
       let startYCanvas: number;
 
-      if (outerEdgeShape.value === 'circle') {
-        // Calculate circle radius (half diagonal of output canvas + outer edge margin)
-        const baseRadius = Math.sqrt((outputCanvasWidth.value / 2) ** 2 + (outputCanvasHeight.value / 2) ** 2);
-        const outerCircleRadius = baseRadius + outerEdge.value;
+      // Always calculate pure fibonacci position first
+      const purePos = getFibonacciPosition(i, speedLineCount.value, outerEdgeShape.value);
 
-        // Calculate circumference for golden ratio distribution
-        const circumference = 2 * Math.PI * outerCircleRadius;
-        const goldenRatio = 1.618033988749895; // Golden ratio (phi)
-
-        // Use golden ratio to distribute points evenly along the circle's circumference
-        // This creates a sequence that naturally fills gaps (Fibonacci-style)
-        // Multiply by golden ratio and take modulo 1 to get normalized position, then scale to circumference
-        const normalizedPosition = (i * goldenRatio) % 1.0;
-        const arcLength = normalizedPosition * circumference;
-
-        // Convert arc length to angle (in radians)
-        const angle = arcLength / outerCircleRadius;
-
-        // Calculate point on circle edge
-        startXCanvas = centerX + Math.cos(angle) * outerCircleRadius;
-        startYCanvas = centerY + Math.sin(angle) * outerCircleRadius;
+      if (lineDistribution.value === 0) {
+        // Pure fibonacci distribution (original behavior)
+        startXCanvas = purePos.x;
+        startYCanvas = purePos.y;
       } else {
-        // Rectangle: distribute points along the rectangle perimeter
-        const halfWidth = outputCanvasWidth.value / 2 + outerEdge.value;
-        const halfHeight = outputCanvasHeight.value / 2 + outerEdge.value;
-
-        // Calculate perimeter
-        const perimeter = 2 * (halfWidth * 2 + halfHeight * 2);
-        const goldenRatio = 1.618033988749895;
-
-        // Use golden ratio to distribute points evenly along the rectangle's perimeter
-        const normalizedPosition = (i * goldenRatio) % 1.0;
-        const position = normalizedPosition * perimeter;
-
-        // Determine which edge the point is on
-        // Top edge: 0 to 2*halfWidth
-        // Right edge: 2*halfWidth to 2*halfWidth + 2*halfHeight
-        // Bottom edge: 2*halfWidth + 2*halfHeight to 4*halfWidth + 2*halfHeight
-        // Left edge: 4*halfWidth + 2*halfHeight to perimeter
-
-        if (position < 2 * halfWidth) {
-          // Top edge (left to right)
-          startXCanvas = centerX - halfWidth + position;
-          startYCanvas = centerY - halfHeight;
-        } else if (position < 2 * halfWidth + 2 * halfHeight) {
-          // Right edge (top to bottom)
-          startXCanvas = centerX + halfWidth;
-          startYCanvas = centerY - halfHeight + (position - 2 * halfWidth);
-        } else if (position < 4 * halfWidth + 2 * halfHeight) {
-          // Bottom edge (right to left)
-          startXCanvas = centerX + halfWidth - (position - 2 * halfWidth - 2 * halfHeight);
-          startYCanvas = centerY + halfHeight;
+        // Find which group this line is closest to based on spatial position
+        const closestGroupIndex = findClosestGroup(purePos, groupCenters, outerEdgeShape.value);
+        const groupCenterPos = groupCenters[closestGroupIndex];
+        
+        if (!groupCenterPos) {
+          // Fallback to pure fibonacci if group center not found
+          startXCanvas = purePos.x;
+          startYCanvas = purePos.y;
+          continue;
+        }
+        
+        // Calculate clumping radius - tighter clusters
+        const maxClumpRadius = Math.min(outputCanvasWidth.value, outputCanvasHeight.value) * 0.05;
+        
+        // Use seeded random for consistent but varied positioning within clump
+        // Seed based on group and line index for deterministic results
+        const rngForClump = seededRandom(seed.value + closestGroupIndex * 10000 + i);
+        const angleInClump = rngForClump() * Math.PI * 2;
+        const distanceInClump = Math.sqrt(rngForClump()) * maxClumpRadius; // sqrt for uniform distribution in circle
+        
+        const groupedX = groupCenterPos.x + Math.cos(angleInClump) * distanceInClump;
+        const groupedY = groupCenterPos.y + Math.sin(angleInClump) * distanceInClump;
+        
+        if (lineDistribution.value === 1) {
+          // Fully grouped
+          startXCanvas = groupedX;
+          startYCanvas = groupedY;
         } else {
-          // Left edge (bottom to top)
-          startXCanvas = centerX - halfWidth;
-          startYCanvas = centerY + halfHeight - (position - 4 * halfWidth - 2 * halfHeight);
+          // Interpolate between pure fibonacci and grouped
+          startXCanvas = purePos.x * (1 - lineDistribution.value) + groupedX * lineDistribution.value;
+          startYCanvas = purePos.y * (1 - lineDistribution.value) + groupedY * lineDistribution.value;
         }
       }
 
@@ -751,6 +825,34 @@ function getViewBox() {
           <div class="slider-container">
             <input type="range" id="speedLineCount" min="10" max="1000" v-model.number="speedLineCount" />
             <span class="value">{{ speedLineCount }}</span>
+          </div>
+        </div>
+        <div class="control-item">
+          <label for="lineDistribution">
+            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="8" cy="8" r="2" />
+              <circle cx="16" cy="8" r="2" />
+              <circle cx="8" cy="16" r="2" />
+              <circle cx="16" cy="16" r="2" />
+            </svg>
+            Line Distribution
+          </label>
+          <div class="slider-container">
+            <input type="range" id="lineDistribution" min="0" max="1" step="0.01" v-model.number="lineDistribution" />
+            <span class="value">{{ (lineDistribution * 100).toFixed(0) }}%</span>
+          </div>
+        </div>
+        <div class="control-item" v-if="lineDistribution > 0">
+          <label for="lineGroupCount">
+            <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 1v6m0 6v6M23 12h-6m-6 0H1" />
+            </svg>
+            Group Count
+          </label>
+          <div class="slider-container">
+            <input type="range" id="lineGroupCount" min="2" max="50" v-model.number="lineGroupCount" />
+            <span class="value">{{ lineGroupCount }}</span>
           </div>
         </div>
         <div class="control-item">
