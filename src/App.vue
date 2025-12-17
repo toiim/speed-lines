@@ -871,22 +871,6 @@ function getViewBox() {
     </div>
     <div id="output">
       <div class="svg-container">
-        <div class="zoom-controls">
-          <button @click="zoomOut" class="zoom-button" title="Zoom Out">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="8" y1="12" x2="16" y2="12" />
-            </svg>
-          </button>
-          <span class="zoom-percentage">{{ zoomLevel }}%</span>
-          <button @click="zoomIn" class="zoom-button" title="Zoom In">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="16" />
-              <line x1="8" y1="12" x2="16" y2="12" />
-            </svg>
-          </button>
-        </div>
         <svg ref="svgElement" :width="canvasWidth" :height="canvasHeight" :viewBox="getViewBox()"
           @mousemove="handleMouseMove" @mouseup="handleMouseUp" @mouseleave="handleMouseUp" @touchmove="handleMouseMove"
           @touchend="handleMouseUp">
@@ -953,6 +937,22 @@ function getViewBox() {
             @mousedown="startDragOuterEdge" @touchstart="startDragOuterEdge"
             :style="{ cursor: isDraggingOuterEdge ? 'grabbing' : 'grab' }" />
         </svg>
+        <div class="zoom-controls">
+          <button @click="zoomOut" class="zoom-button" title="Zoom Out">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="8" y1="12" x2="16" y2="12" />
+            </svg>
+          </button>
+          <span class="zoom-percentage">{{ zoomLevel }}%</span>
+          <button @click="zoomIn" class="zoom-button" title="Zoom In">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="16" />
+              <line x1="8" y1="12" x2="16" y2="12" />
+            </svg>
+          </button>
+        </div>
       </div>
       <canvas ref="speedLineCanvas" id="speed-lines" :width="outputCanvasWidth" :height="outputCanvasHeight"></canvas>
     </div>
@@ -976,6 +976,21 @@ function getViewBox() {
   display: inline-block;
 }
 
+.zoom-controls {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(248, 249, 250, 0.95);
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
 svg {
   width: 800px;
   height: 600px;
@@ -985,17 +1000,6 @@ svg {
   display: block;
 }
 
-.zoom-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  padding: 8px;
-  background: #f8f9fa;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  width: fit-content;
-}
 
 .zoom-button {
   background: #fff;
