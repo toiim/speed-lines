@@ -35,6 +35,7 @@ const isDraggingOuterEdge = ref(false);
 const dragOffset = ref<{ x: number; y: number } | null>(null);
 const threshold = ref(50);
 const isAntiAliasing = ref(true);
+const zoomLevel = ref(100); // Zoom percentage (100 = 100%)
 
 onMounted(() => {
   drawSpeedLines();
@@ -63,13 +64,21 @@ function getSVGPoint(event: MouseEvent | TouchEvent): { x: number; y: number } |
     clientY = touch.clientY;
   }
 
-  // Convert screen coordinates to SVG coordinates
-  // Scale based on the ratio of SVG viewBox to actual rendered size
-  const scaleX = canvasWidth / rect.width;
-  const scaleY = canvasHeight / rect.height;
+  // Get the current viewBox
+  const zoomFactor = zoomLevel.value / 100;
+  const viewBoxWidth = canvasWidth / zoomFactor;
+  const viewBoxHeight = canvasHeight / zoomFactor;
+  const centerX = outputCanvasX.value + outputCanvasWidth.value / 2;
+  const centerY = outputCanvasY.value + outputCanvasHeight.value / 2;
+  const viewBoxX = centerX - viewBoxWidth / 2;
+  const viewBoxY = centerY - viewBoxHeight / 2;
 
-  const x = (clientX - rect.left) * scaleX;
-  const y = (clientY - rect.top) * scaleY;
+  // Convert screen coordinates to SVG coordinates accounting for zoom
+  const scaleX = viewBoxWidth / rect.width;
+  const scaleY = viewBoxHeight / rect.height;
+
+  const x = (clientX - rect.left) * scaleX + viewBoxX;
+  const y = (clientY - rect.top) * scaleY + viewBoxY;
 
   return { x, y };
 }
@@ -250,7 +259,7 @@ function dragOutputWidth(event: MouseEvent | TouchEvent) {
 
   // Calculate distance from center to mouse (doubled to get full width)
   const distanceFromCenter = Math.abs(point.x - centerX);
-  const newWidth = Math.max(50, Math.min(canvasWidth, distanceFromCenter * 2));
+  const newWidth = Math.max(50, distanceFromCenter * 2);
 
   // Update width and x position to keep box centered
   outputCanvasWidth.value = newWidth;
@@ -270,7 +279,7 @@ function dragOutputHeight(event: MouseEvent | TouchEvent) {
 
   // Calculate distance from center to mouse (doubled to get full height)
   const distanceFromCenter = Math.abs(point.y - centerY);
-  const newHeight = Math.max(50, Math.min(canvasHeight, distanceFromCenter * 2));
+  const newHeight = Math.max(50, distanceFromCenter * 2);
 
   // Update height and y position to keep box centered
   outputCanvasHeight.value = newHeight;
@@ -603,6 +612,32 @@ function toggleAntiAliasing() {
   isAntiAliasing.value = !isAntiAliasing.value;
 }
 
+function zoomIn() {
+  zoomLevel.value = Math.min(500, zoomLevel.value + 10);
+}
+
+function zoomOut() {
+  zoomLevel.value = Math.max(25, zoomLevel.value - 10);
+}
+
+// Calculate viewBox based on zoom level
+// The SVG coordinate space is canvasWidth x canvasHeight
+// The viewBox shows a portion of this space, centered on the output canvas area
+// When zoom is 100%, viewBox shows full SVG space (canvasWidth x canvasHeight)
+// When zoom is 200%, viewBox shows half the SVG space (zoomed in 2x)
+function getViewBox() {
+  const zoomFactor = zoomLevel.value / 100;
+  // Calculate the visible area of the SVG coordinate space based on zoom
+  const viewBoxWidth = canvasWidth / zoomFactor;
+  const viewBoxHeight = canvasHeight / zoomFactor;
+  // Center the viewBox on the output canvas area
+  const centerX = outputCanvasX.value + outputCanvasWidth.value / 2;
+  const centerY = outputCanvasY.value + outputCanvasHeight.value / 2;
+  const viewBoxX = centerX - viewBoxWidth / 2;
+  const viewBoxY = centerY - viewBoxHeight / 2;
+  return `${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`;
+}
+
 
 
 </script>
@@ -833,9 +868,26 @@ function toggleAntiAliasing() {
       </div>
     </div>
     <div id="output">
-      <svg ref="svgElement" :width="canvasWidth" :height="canvasHeight" :viewBox="`0 0 ${canvasWidth} ${canvasHeight}`"
-        @mousemove="handleMouseMove" @mouseup="handleMouseUp" @mouseleave="handleMouseUp" @touchmove="handleMouseMove"
-        @touchend="handleMouseUp">
+      <div class="svg-container">
+        <div class="zoom-controls">
+          <button @click="zoomOut" class="zoom-button" title="Zoom Out">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="8" y1="12" x2="16" y2="12"/>
+            </svg>
+          </button>
+          <span class="zoom-percentage">{{ zoomLevel }}%</span>
+          <button @click="zoomIn" class="zoom-button" title="Zoom In">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="16"/>
+              <line x1="8" y1="12" x2="16" y2="12"/>
+            </svg>
+          </button>
+        </div>
+        <svg ref="svgElement" :width="canvasWidth" :height="canvasHeight" :viewBox="getViewBox()"
+          @mousemove="handleMouseMove" @mouseup="handleMouseUp" @mouseleave="handleMouseUp" @touchmove="handleMouseMove"
+          @touchend="handleMouseUp">
         <!-- Main radius circle (interactive, no pointer-ignore) -->
         <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100" :r="radius"
           @mousedown="startDrag" @touchstart="startDrag" :style="{ cursor: isDragging ? 'grabbing' : 'grab' }" />
@@ -908,7 +960,8 @@ function toggleAntiAliasing() {
           r="6" fill="pink" stroke="#333" stroke-width="2"
           @mousedown="startDragOuterEdge" @touchstart="startDragOuterEdge"
           :style="{ cursor: isDraggingOuterEdge ? 'grabbing' : 'grab' }" />
-      </svg>
+        </svg>
+      </div>
       <canvas ref="speedLineCanvas" id="speed-lines" :width="outputCanvasWidth" :height="outputCanvasHeight"></canvas>
     </div>
   </div>
@@ -917,12 +970,60 @@ function toggleAntiAliasing() {
 </template>
 
 <style scoped>
+.svg-container {
+  position: relative;
+  display: inline-block;
+}
+
 svg {
   width: 800px;
   height: 600px;
   border: 1px solid black;
   position: relative;
   user-select: none;
+  display: block;
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 8px;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  width: fit-content;
+}
+
+.zoom-button {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.zoom-button:hover {
+  background: #e9ecef;
+}
+
+.zoom-button svg {
+  width: 16px;
+  height: 16px;
+  border: none;
+}
+
+.zoom-percentage {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  min-width: 50px;
+  text-align: center;
 }
 
 circle {
