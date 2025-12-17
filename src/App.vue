@@ -333,17 +333,17 @@ function dragOuterEdge(event: MouseEvent | TouchEvent) {
     // Rectangle: calculate distance from rectangle edge
     const halfWidth = outputCanvasWidth.value / 2;
     const halfHeight = outputCanvasHeight.value / 2;
-    
+
     // Calculate the distance from the rectangle edge (expanded by outerEdge)
     // Find the closest edge and calculate margin
     const dx = Math.abs(point.x - centerX);
     const dy = Math.abs(point.y - centerY);
-    
+
     // For rectangle, outerEdge is the margin added to each side
     // Calculate how far beyond the rectangle the point is
     const marginX = dx - halfWidth;
     const marginY = dy - halfHeight;
-    
+
     // Use the maximum margin (furthest from rectangle)
     const newOuterEdge = Math.max(0, Math.max(marginX, marginY));
 
@@ -468,21 +468,21 @@ function drawSpeedLines() {
         // Rectangle: distribute points along the rectangle perimeter
         const halfWidth = outputCanvasWidth.value / 2 + outerEdge.value;
         const halfHeight = outputCanvasHeight.value / 2 + outerEdge.value;
-        
+
         // Calculate perimeter
         const perimeter = 2 * (halfWidth * 2 + halfHeight * 2);
         const goldenRatio = 1.618033988749895;
-        
+
         // Use golden ratio to distribute points evenly along the rectangle's perimeter
         const normalizedPosition = (i * goldenRatio) % 1.0;
         const position = normalizedPosition * perimeter;
-        
+
         // Determine which edge the point is on
         // Top edge: 0 to 2*halfWidth
         // Right edge: 2*halfWidth to 2*halfWidth + 2*halfHeight
         // Bottom edge: 2*halfWidth + 2*halfHeight to 4*halfWidth + 2*halfHeight
         // Left edge: 4*halfWidth + 2*halfHeight to perimeter
-        
+
         if (position < 2 * halfWidth) {
           // Top edge (left to right)
           startXCanvas = centerX - halfWidth + position;
@@ -649,16 +649,16 @@ function getViewBox() {
       <div class="control-group">
         <h3 class="group-header">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M12 1v6m0 6v6M23 12h-6m-6 0H1"/>
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 1v6m0 6v6M23 12h-6m-6 0H1" />
           </svg>
           Vanishing Point
         </h3>
         <div class="control-item">
           <label for="vanishingPointX">
             <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="3" y1="12" x2="21" y2="12"/>
-              <polyline points="12,3 21,12 12,21"/>
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <polyline points="12,3 21,12 12,21" />
             </svg>
             X Position
           </label>
@@ -670,8 +670,8 @@ function getViewBox() {
         <div class="control-item">
           <label for="vanishingPointY">
             <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="3" x2="12" y2="21"/>
-              <polyline points="3,12 12,3 21,12"/>
+              <line x1="12" y1="3" x2="12" y2="21" />
+              <polyline points="3,12 12,3 21,12" />
             </svg>
             Y Position
           </label>
@@ -686,14 +686,14 @@ function getViewBox() {
       <div class="control-group">
         <h3 class="group-header">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
+            <circle cx="12" cy="12" r="10" />
           </svg>
           Radius & Length
         </h3>
         <div class="control-item">
           <label for="radius">
             <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
+              <circle cx="12" cy="12" r="10" />
             </svg>
             Radius
           </label>
@@ -705,8 +705,8 @@ function getViewBox() {
         <div class="control-item">
           <label for="outerLengthLeniency">
             <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <circle cx="12" cy="12" r="7" stroke-dasharray="2 2"/>
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="7" stroke-dasharray="2 2" />
             </svg>
             Outer Variance
           </label>
@@ -718,8 +718,8 @@ function getViewBox() {
         <div class="control-item">
           <label for="innerLengthLeniency">
             <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <circle cx="12" cy="12" r="5" stroke-dasharray="2 2"/>
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="5" stroke-dasharray="2 2" />
             </svg>
             Inner Variance
           </label>
@@ -734,17 +734,17 @@ function getViewBox() {
       <div class="control-group">
         <h3 class="group-header">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="2" y1="2" x2="22" y2="22"/>
-            <line x1="2" y1="22" x2="22" y2="2"/>
+            <line x1="2" y1="2" x2="22" y2="22" />
+            <line x1="2" y1="22" x2="22" y2="2" />
           </svg>
           Line Properties
         </h3>
         <div class="control-item">
           <label for="speedLineCount">
             <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="3" y1="12" x2="21" y2="12"/>
-              <line x1="3" y1="6" x2="21" y2="6"/>
-              <line x1="3" y1="18" x2="21" y2="18"/>
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
             Line Count
           </label>
@@ -756,8 +756,8 @@ function getViewBox() {
         <div class="control-item">
           <label for="minWidth">
             <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="2" x2="12" y2="22"/>
-              <line x1="8" y1="6" x2="16" y2="6"/>
+              <line x1="12" y1="2" x2="12" y2="22" />
+              <line x1="8" y1="6" x2="16" y2="6" />
             </svg>
             Min Width
           </label>
@@ -769,8 +769,8 @@ function getViewBox() {
         <div class="control-item">
           <label for="maxWidth">
             <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="2" x2="12" y2="22"/>
-              <line x1="6" y1="6" x2="18" y2="6"/>
+              <line x1="12" y1="2" x2="12" y2="22" />
+              <line x1="6" y1="6" x2="18" y2="6" />
             </svg>
             Max Width
           </label>
@@ -782,8 +782,8 @@ function getViewBox() {
         <div class="control-item">
           <label for="outerEdge">
             <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="18" height="18" rx="2"/>
-              <rect x="1" y="1" width="22" height="22" rx="2" stroke-dasharray="2 2"/>
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <rect x="1" y="1" width="22" height="22" rx="2" stroke-dasharray="2 2" />
             </svg>
             Line Origin
           </label>
@@ -794,15 +794,16 @@ function getViewBox() {
         </div>
         <div class="control-item checkbox-item">
           <label for="outerEdgeShape" class="checkbox-label">
-            <input type="checkbox" id="outerEdgeShape" :checked="outerEdgeShape === 'circle'" @change="outerEdgeShape = outerEdgeShape === 'circle' ? 'rectangle' : 'circle'" />
+            <input type="checkbox" id="outerEdgeShape" :checked="outerEdgeShape === 'circle'"
+              @change="outerEdgeShape = outerEdgeShape === 'circle' ? 'rectangle' : 'circle'" />
             <template v-if="outerEdgeShape === 'circle'">
               <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
+                <circle cx="12" cy="12" r="10" />
               </svg>
             </template>
             <template v-else>
               <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="2" y="2" width="20" height="20" rx="2"/>
+                <rect x="2" y="2" width="20" height="20" rx="2" />
               </svg>
             </template>
             {{ outerEdgeShape === 'circle' ? 'Circle' : 'Rectangle' }} Outer Edge
@@ -814,20 +815,21 @@ function getViewBox() {
       <div class="control-group">
         <h3 class="group-header">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <rect x="3" y="3" width="18" height="18" rx="2" />
           </svg>
           Output Canvas
         </h3>
         <div class="control-item">
           <label for="threshold">
             <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="2" width="20" height="20" rx="2"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
+              <rect x="2" y="2" width="20" height="20" rx="2" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
             Threshold
           </label>
           <div class="slider-container">
-            <input :disabled="isAntiAliasing" type="range" id="threshold" min="1" max="255" v-model.number="threshold" />
+            <input :disabled="isAntiAliasing" type="range" id="threshold" min="1" max="255"
+              v-model.number="threshold" />
             <span class="value">{{ threshold }}</span>
           </div>
         </div>
@@ -835,7 +837,7 @@ function getViewBox() {
           <label for="isAntiAliasing" class="checkbox-label">
             <input type="checkbox" id="isAntiAliasing" v-model="isAntiAliasing" />
             <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
+              <path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
             </svg>
             Anti-aliasing
           </label>
@@ -846,16 +848,16 @@ function getViewBox() {
       <div class="control-group">
         <h3 class="group-header">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M12 1v6m0 6v6M23 12h-6m-6 0H1"/>
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 1v6m0 6v6M23 12h-6m-6 0H1" />
           </svg>
           Advanced
         </h3>
         <div class="control-item">
           <label for="seed">
             <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
-              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
+              <circle cx="12" cy="12" r="3" />
             </svg>
             Random Seed
           </label>
@@ -864,7 +866,7 @@ function getViewBox() {
             <span class="value">{{ seed }}</span>
           </div>
         </div>
-        
+
       </div>
     </div>
     <div id="output">
@@ -872,94 +874,84 @@ function getViewBox() {
         <div class="zoom-controls">
           <button @click="zoomOut" class="zoom-button" title="Zoom Out">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="8" y1="12" x2="16" y2="12"/>
+              <circle cx="12" cy="12" r="10" />
+              <line x1="8" y1="12" x2="16" y2="12" />
             </svg>
           </button>
           <span class="zoom-percentage">{{ zoomLevel }}%</span>
           <button @click="zoomIn" class="zoom-button" title="Zoom In">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="12" y1="8" x2="12" y2="16"/>
-              <line x1="8" y1="12" x2="16" y2="12"/>
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="16" />
+              <line x1="8" y1="12" x2="16" y2="12" />
             </svg>
           </button>
         </div>
         <svg ref="svgElement" :width="canvasWidth" :height="canvasHeight" :viewBox="getViewBox()"
           @mousemove="handleMouseMove" @mouseup="handleMouseUp" @mouseleave="handleMouseUp" @touchmove="handleMouseMove"
           @touchend="handleMouseUp">
-        <!-- Main radius circle (interactive, no pointer-ignore) -->
-        <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100" :r="radius"
-          @mousedown="startDrag" @touchstart="startDrag" :style="{ cursor: isDragging ? 'grabbing' : 'grab' }" />
-          <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100" :r="2" fill="red" class="pointer-ignore" />
-          
-        <!-- Background elements (with pointer-ignore) -->
-        <!-- Outer edge shape (pink circle or rectangle) -->
-        <circle 
-          v-if="outerEdgeShape === 'circle'"
-          :cx="outputCanvasX + outputCanvasWidth / 2" 
-          :cy="outputCanvasY + outputCanvasHeight / 2" 
-          :r="Math.sqrt((outputCanvasWidth / 2) ** 2 + (outputCanvasHeight / 2) ** 2) + outerEdge"
-          fill="none" stroke="pink" stroke-width="2" stroke-dasharray="4 4" class="pointer-ignore" />
-        <rect 
-          v-else
-          :x="outputCanvasX - outerEdge" 
-          :y="outputCanvasY - outerEdge" 
-          :width="outputCanvasWidth + outerEdge * 2" 
-          :height="outputCanvasHeight + outerEdge * 2"
-          fill="none" stroke="pink" stroke-width="2" stroke-dasharray="4 4" class="pointer-ignore" />
-        <!-- Output canvas box (red rectangle) -->
-        <rect :x="outputCanvasX" :y="outputCanvasY" :width="outputCanvasWidth" :height="outputCanvasHeight" fill="none"
-          stroke="red" stroke-width="2" stroke-dasharray="4 4" class="pointer-ignore" />
-        <!-- Outer variance circle (radius + outerLengthLeniency) -->
-        <circle class="pointer-ignore" :cx="vanishingPointX * canvasWidth / 100"
-          :cy="vanishingPointY * canvasHeight / 100" :r="radius + outerLengthLeniency" fill="none" stroke="#888"
-          stroke-width="1" stroke-dasharray="4 4" />
-        <!-- Inner variance circle (radius - innerLengthLeniency) -->
-        <circle class="pointer-ignore" :cx="vanishingPointX * canvasWidth / 100"
-          :cy="vanishingPointY * canvasHeight / 100" :r="Math.max(0, radius - innerLengthLeniency)" fill="none"
-          stroke="#888" stroke-width="1" stroke-dasharray="4 4" />
+          <!-- Main radius circle (interactive, no pointer-ignore) -->
+          <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100" :r="radius"
+            @mousedown="startDrag" @touchstart="startDrag" :style="{ cursor: isDragging ? 'grabbing' : 'grab' }" />
+          <circle :cx="vanishingPointX * canvasWidth / 100" :cy="vanishingPointY * canvasHeight / 100" :r="2" fill="red"
+            class="pointer-ignore" />
+
+          <!-- Background elements (with pointer-ignore) -->
+          <!-- Outer edge shape (pink circle or rectangle) -->
+          <circle v-if="outerEdgeShape === 'circle'" :cx="outputCanvasX + outputCanvasWidth / 2"
+            :cy="outputCanvasY + outputCanvasHeight / 2"
+            :r="Math.sqrt((outputCanvasWidth / 2) ** 2 + (outputCanvasHeight / 2) ** 2) + outerEdge" fill="none"
+            stroke="pink" stroke-width="2" stroke-dasharray="4 4" class="pointer-ignore" />
+          <rect v-else :x="outputCanvasX - outerEdge" :y="outputCanvasY - outerEdge"
+            :width="outputCanvasWidth + outerEdge * 2" :height="outputCanvasHeight + outerEdge * 2" fill="none"
+            stroke="pink" stroke-width="2" stroke-dasharray="4 4" class="pointer-ignore" />
+          <!-- Output canvas box (red rectangle) -->
+          <rect :x="outputCanvasX" :y="outputCanvasY" :width="outputCanvasWidth" :height="outputCanvasHeight"
+            fill="none" stroke="red" stroke-width="2" stroke-dasharray="4 4" class="pointer-ignore" />
+          <!-- Outer variance circle (radius + outerLengthLeniency) -->
+          <circle class="pointer-ignore" :cx="vanishingPointX * canvasWidth / 100"
+            :cy="vanishingPointY * canvasHeight / 100" :r="radius + outerLengthLeniency" fill="none" stroke="#888"
+            stroke-width="1" stroke-dasharray="4 4" />
+          <!-- Inner variance circle (radius - innerLengthLeniency) -->
+          <circle class="pointer-ignore" :cx="vanishingPointX * canvasWidth / 100"
+            :cy="vanishingPointY * canvasHeight / 100" :r="Math.max(0, radius - innerLengthLeniency)" fill="none"
+            stroke="#888" stroke-width="1" stroke-dasharray="4 4" />
 
 
-        <!-- Handles (rendered last, on top) -->
-        <!-- Width resize handle (right edge, center) -->
-        <circle :cx="outputCanvasX + outputCanvasWidth" :cy="outputCanvasY + outputCanvasHeight / 2" r="6" fill="red"
-          stroke="#333" stroke-width="2" @mousedown="startDragOutputWidth" @touchstart="startDragOutputWidth"
-          :style="{ cursor: isDraggingOutputWidth ? 'ew-resize' : 'ew-resize' }" />
-        <!-- Height resize handle (bottom edge, center) -->
-        <circle :cx="outputCanvasX + outputCanvasWidth / 2" :cy="outputCanvasY + outputCanvasHeight" r="6" fill="red"
-          stroke="#333" stroke-width="2" @mousedown="startDragOutputHeight" @touchstart="startDragOutputHeight"
-          :style="{ cursor: isDraggingOutputHeight ? 'ns-resize' : 'ns-resize' }" />
+          <!-- Handles (rendered last, on top) -->
+          <!-- Width resize handle (right edge, center) -->
+          <circle :cx="outputCanvasX + outputCanvasWidth" :cy="outputCanvasY + outputCanvasHeight / 2" r="6" fill="red"
+            stroke="#333" stroke-width="2" @mousedown="startDragOutputWidth" @touchstart="startDragOutputWidth"
+            :style="{ cursor: isDraggingOutputWidth ? 'ew-resize' : 'ew-resize' }" />
+          <!-- Height resize handle (bottom edge, center) -->
+          <circle :cx="outputCanvasX + outputCanvasWidth / 2" :cy="outputCanvasY + outputCanvasHeight" r="6" fill="red"
+            stroke="#333" stroke-width="2" @mousedown="startDragOutputHeight" @touchstart="startDragOutputHeight"
+            :style="{ cursor: isDraggingOutputHeight ? 'ns-resize' : 'ns-resize' }" />
 
-        <!-- Radius handle circle (on the edge of main radius circle) -->
-        <circle :cx="vanishingPointX * canvasWidth / 100 + radius" :cy="vanishingPointY * canvasHeight / 100" r="6"
-          fill="#999" stroke="#333" stroke-width="2" @mousedown="startDragRadius" @touchstart="startDragRadius"
-          :style="{ cursor: isDraggingRadius ? 'grabbing' : 'grab' }" />
-        <!-- Outer leniency handle circle (on the edge of outer variance circle) -->
-        <circle :cx="vanishingPointX * canvasWidth / 100 + radius + outerLengthLeniency"
-          :cy="vanishingPointY * canvasHeight / 100" r="6" fill="#666" stroke="#333" stroke-width="2"
-          @mousedown="startDragOuterLeniency" @touchstart="startDragOuterLeniency"
-          :style="{ cursor: isDraggingOuterLeniency ? 'grabbing' : 'grab' }" />
-        <!-- Inner leniency handle circle (on the edge of inner variance circle) -->
-        <circle :cx="vanishingPointX * canvasWidth / 100 + Math.max(0, radius - innerLengthLeniency)"
-          :cy="vanishingPointY * canvasHeight / 100" r="6" fill="#666" stroke="#333" stroke-width="2"
-          @mousedown="startDragInnerLeniency" @touchstart="startDragInnerLeniency"
-          :style="{ cursor: isDraggingInnerLeniency ? 'grabbing' : 'grab' }" />
-        <!-- Outer edge handle -->
-        <circle 
-          v-if="outerEdgeShape === 'circle'"
-          :cx="outputCanvasX + outputCanvasWidth / 2 + (Math.sqrt((outputCanvasWidth / 2) ** 2 + (outputCanvasHeight / 2) ** 2) + outerEdge) * Math.cos(-Math.PI / 4)" 
-          :cy="outputCanvasY + outputCanvasHeight / 2 + (Math.sqrt((outputCanvasWidth / 2) ** 2 + (outputCanvasHeight / 2) ** 2) + outerEdge) * Math.sin(-Math.PI / 4)" 
-          r="6" fill="pink" stroke="#333" stroke-width="2"
-          @mousedown="startDragOuterEdge" @touchstart="startDragOuterEdge"
-          :style="{ cursor: isDraggingOuterEdge ? 'grabbing' : 'grab' }" />
-        <circle 
-          v-else
-          :cx="outputCanvasX + outputCanvasWidth + outerEdge" 
-          :cy="outputCanvasY + outputCanvasHeight / 2" 
-          r="6" fill="pink" stroke="#333" stroke-width="2"
-          @mousedown="startDragOuterEdge" @touchstart="startDragOuterEdge"
-          :style="{ cursor: isDraggingOuterEdge ? 'grabbing' : 'grab' }" />
+          <!-- Radius handle circle (on the edge of main radius circle) -->
+          <circle :cx="vanishingPointX * canvasWidth / 100 + radius" :cy="vanishingPointY * canvasHeight / 100" r="6"
+            fill="#999" stroke="#333" stroke-width="2" @mousedown="startDragRadius" @touchstart="startDragRadius"
+            :style="{ cursor: isDraggingRadius ? 'grabbing' : 'grab' }" />
+          <!-- Outer leniency handle circle (on the edge of outer variance circle) -->
+          <circle :cx="vanishingPointX * canvasWidth / 100 + radius + outerLengthLeniency"
+            :cy="vanishingPointY * canvasHeight / 100" r="6" fill="#666" stroke="#333" stroke-width="2"
+            @mousedown="startDragOuterLeniency" @touchstart="startDragOuterLeniency"
+            :style="{ cursor: isDraggingOuterLeniency ? 'grabbing' : 'grab' }" />
+          <!-- Inner leniency handle circle (on the edge of inner variance circle) -->
+          <circle :cx="vanishingPointX * canvasWidth / 100 + Math.max(0, radius - innerLengthLeniency)"
+            :cy="vanishingPointY * canvasHeight / 100" r="6" fill="#666" stroke="#333" stroke-width="2"
+            @mousedown="startDragInnerLeniency" @touchstart="startDragInnerLeniency"
+            :style="{ cursor: isDraggingInnerLeniency ? 'grabbing' : 'grab' }" />
+          <!-- Outer edge handle -->
+          <circle v-if="outerEdgeShape === 'circle'"
+            :cx="outputCanvasX + outputCanvasWidth / 2 + (Math.sqrt((outputCanvasWidth / 2) ** 2 + (outputCanvasHeight / 2) ** 2) + outerEdge) * Math.cos(-Math.PI / 4)"
+            :cy="outputCanvasY + outputCanvasHeight / 2 + (Math.sqrt((outputCanvasWidth / 2) ** 2 + (outputCanvasHeight / 2) ** 2) + outerEdge) * Math.sin(-Math.PI / 4)"
+            r="6" fill="pink" stroke="#333" stroke-width="2" @mousedown="startDragOuterEdge"
+            @touchstart="startDragOuterEdge" :style="{ cursor: isDraggingOuterEdge ? 'grabbing' : 'grab' }" />
+          <circle v-else :cx="outputCanvasX + outputCanvasWidth + outerEdge"
+            :cy="outputCanvasY + outputCanvasHeight / 2" r="6" fill="pink" stroke="#333" stroke-width="2"
+            @mousedown="startDragOuterEdge" @touchstart="startDragOuterEdge"
+            :style="{ cursor: isDraggingOuterEdge ? 'grabbing' : 'grab' }" />
         </svg>
       </div>
       <canvas ref="speedLineCanvas" id="speed-lines" :width="outputCanvasWidth" :height="outputCanvasHeight"></canvas>
@@ -970,6 +962,15 @@ function getViewBox() {
 </template>
 
 <style scoped>
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 .svg-container {
   position: relative;
   display: inline-block;
@@ -1032,9 +1033,11 @@ circle {
 
 #output {
   display: flex;
+  flex: 1;
+  overflow: scroll;
   flex-direction: column;
   gap: 10px;
-  align-items: flex-start;
+  align-items: start;
 }
 
 #speed-lines {
@@ -1049,19 +1052,19 @@ circle {
   display: flex;
   flex-direction: row;
   gap: 20px;
-  width: 100%;
-  padding: 20px;
+  width: 100dvw;
+  height: 100dvh;
   box-sizing: border-box;
 }
 
 #controls {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
   width: 320px;
-  max-height: calc(100vh - 40px);
   overflow-y: auto;
-  padding-right: 8px;
+  padding: 20px;
 }
 
 #controls::-webkit-scrollbar {
